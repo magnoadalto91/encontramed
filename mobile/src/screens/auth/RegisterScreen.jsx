@@ -6,6 +6,7 @@ import { api } from '../../services/api';
 import { useToast } from '../../components/ui/Toast';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import { ConfirmModal } from '../../components/ui/Modal';
 import { COLORS } from '../../utils/constants';
 
 function maskPhone(v) {
@@ -29,6 +30,8 @@ export default function RegisterScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [crmValidando, setCrmValidando] = useState(false);
   const [crmValidado, setCrmValidado] = useState(null); // dados da CFM após validação
+  const [crmIndisponivel, setCrmIndisponivel] = useState(false); // serviço CFM fora do ar
+  const [modalIndisponivel, setModalIndisponivel] = useState(false);
   const [form, setForm] = useState({ nomeCompleto: '', email: '', senha: '', telefone: '', crm: '', crmUf: '', cnpj: '' });
   const [errors, setErrors] = useState({});
   const showToast = useToast();
@@ -36,7 +39,7 @@ export default function RegisterScreen({ navigation }) {
   const update = (key, val) => {
     setForm(prev => ({ ...prev, [key]: val }));
     // Reset CRM validation when CRM/UF changes
-    if (key === 'crm' || key === 'crmUf') setCrmValidado(null);
+    if (key === 'crm' || key === 'crmUf') { setCrmValidado(null); setCrmIndisponivel(false); }
   };
 
   const validate = () => {
@@ -47,10 +50,10 @@ export default function RegisterScreen({ navigation }) {
     if (role === 'MEDICO') {
       if (!form.crm.trim()) e.crm = 'CRM é obrigatório';
       if (!form.crmUf.trim()) e.crmUf = 'UF é obrigatória';
-      if (!crmValidado) {
+      if (!crmValidado && !crmIndisponivel) {
         e.crm = 'Clique em "Validar" para verificar seu CRM antes de continuar';
-      } else if (crmValidado.situacao !== 'ATIVO') {
-        e.crm = `CRM com situação "${crmValidado.situacao}" — apenas CRMs ativos podem se cadastrar`;
+      } else if (crmValidado && crmValidado.situacao !== 'ATIVO') {
+        e.crm = `CRM com situação "${crmValidado.situacao}" no CFM — apenas CRMs ativos podem se cadastrar`;
       }
     }
     if (role === 'HOSPITAL') {
@@ -67,16 +70,23 @@ export default function RegisterScreen({ navigation }) {
     }
     setCrmValidando(true);
     setCrmValidado(null);
+    setCrmIndisponivel(false);
     try {
       const { data } = await api.get(`/crm/validar?crm=${form.crm.replace(/\D/g,'')}&uf=${form.crmUf}`);
       setCrmValidado(data);
-      // Auto-fill name from CFM if empty
-      if (!form.nomeCompleto.trim() && data.nome) {
-        update('nomeCompleto', data.nome);
-      }
-      showToast(`CRM validado: ${data.situacao === 'ATIVO' ? '✅ Ativo' : '⚠️ ' + data.situacao}`, data.situacao === 'ATIVO' ? 'success' : 'warning');
+      if (!form.nomeCompleto.trim() && data.nome) update('nomeCompleto', data.nome);
+      showToast(
+        `CRM ${data.situacao === 'ATIVO' ? '✅ Ativo no CFM' : '⚠️ Situação: ' + data.situacao}`,
+        data.situacao === 'ATIVO' ? 'success' : 'warning'
+      );
     } catch (err) {
-      showToast(err?.message || 'Não foi possível validar o CRM', 'error');
+      if (err?.status === 503 || err?.isNetworkError) {
+        // Serviço CFM fora do ar — mostra modal e permite continuar
+        setCrmIndisponivel(true);
+        setModalIndisponivel(true);
+      } else {
+        showToast(err?.message || 'Não foi possível validar o CRM', 'error');
+      }
     } finally {
       setCrmValidando(false);
     }
@@ -97,6 +107,16 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
+    <ConfirmModal
+      visible={modalIndisponivel}
+      title="Serviço CFM indisponível"
+      message={"O serviço de validação do CFM está temporariamente fora do ar.\n\nVocê pode continuar o cadastro — seu CRM será verificado manualmente pela equipe EncontraMed antes da liberação do acesso."}
+      confirmText="Entendido, continuar"
+      cancelText={null}
+      variant="primary"
+      onClose={() => setModalIndisponivel(false)}
+      onConfirm={() => setModalIndisponivel(false)}
+    />
     <LinearGradient colors={['#0A1628', '#0D1B2E']} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -136,23 +156,26 @@ export default function RegisterScreen({ navigation }) {
                 {/* CRM first for médicos — pre-fills name from CFM */}
                 {role === 'MEDICO' && (
                   <>
-                    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-end' }}>
+                    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
                       <View style={{ flex: 2 }}>
                         <Input label="CRM" value={form.crm} onChangeText={v => update('crm', v.replace(/\D/g,''))} placeholder="123456" keyboardType="numeric" error={errors.crm} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Input label="UF" value={form.crmUf} onChangeText={v => update('crmUf', v.toUpperCase())} placeholder="SP" maxLength={2} error={errors.crmUf} autoCapitalize="characters" />
                       </View>
-                      <TouchableOpacity
-                        style={[styles.validateBtn, crmValidado && { backgroundColor: COLORS.success }]}
-                        onPress={handleValidarCrm}
-                        disabled={crmValidando}
-                      >
-                        {crmValidando
-                          ? <ActivityIndicator size="small" color="#fff" />
-                          : <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{crmValidado ? '✓ OK' : 'Validar'}</Text>
-                        }
-                      </TouchableOpacity>
+                      {/* Spacer label + button alinhado com os inputs */}
+                      <View style={{ paddingTop: 19, marginBottom: 16 }}>
+                        <TouchableOpacity
+                          style={[styles.validateBtn, crmValidado && { backgroundColor: COLORS.success }]}
+                          onPress={handleValidarCrm}
+                          disabled={crmValidando}
+                        >
+                          {crmValidando
+                            ? <ActivityIndicator size="small" color="#fff" />
+                            : <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{crmValidado ? '✓ OK' : 'Validar'}</Text>
+                          }
+                        </TouchableOpacity>
+                      </View>
                     </View>
 
                     {/* CFM data preview */}
@@ -218,8 +241,8 @@ const styles = StyleSheet.create({
   roleSelected: { color: COLORS.accent, fontSize: 16, fontWeight: '600' },
   loginArea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingBottom: 24 },
   validateBtn: {
-    backgroundColor: COLORS.blue, borderRadius: 8, paddingHorizontal: 12,
-    paddingVertical: 12, marginBottom: 2, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.blue, borderRadius: 10, paddingHorizontal: 12,
+    height: 48, alignItems: 'center', justifyContent: 'center', minWidth: 70,
   },
   cfmCard: {
     backgroundColor: 'rgba(16,185,129,0.08)', borderRadius: 10, padding: 14,

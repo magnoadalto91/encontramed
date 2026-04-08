@@ -164,7 +164,11 @@ async function validarCrm(crm, uf, captchaToken = null, forceRefresh = false) {
   }
 
   if (!resultado) {
-    throw Object.assign(new Error('Não foi possível validar o CRM no momento. Tente novamente mais tarde.'), { status: 503 });
+    const err = Object.assign(
+      new Error('Não foi possível validar o CRM no momento. Tente novamente mais tarde.'),
+      { status: 503, serviceUnavailable: true }
+    );
+    throw err;
   }
 
   return resultado;

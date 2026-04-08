@@ -12,6 +12,8 @@
 - Atualizar o CLAUDE.md imediatamente sempre que aprender algo novo: decisão técnica, bug corrigido, preferência do usuário.
 - Quando a plataforma não for especificada: aplicar em **todas** (web + mobile).
 - Nunca usar `alert()` ou `confirm()` nativos. Criar sempre modais customizados com a identidade visual do projeto.
+  - Mobile: usar `ConfirmModal` de `components/ui/Modal.jsx` (passa `cancelText={null}` para modal de apenas 1 botão)
+  - Web: usar `showModal()` / `showConfirm()` de `js/modal.js` (nunca `window.confirm()` ou `window.alert()`)
 - Nunca usar `prisma db push --force-reset` em produção — apaga todos os dados. Para schema changes: `npx prisma db push` (sem flags).
 
 ---

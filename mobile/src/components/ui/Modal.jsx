@@ -48,8 +48,8 @@ export function ConfirmModal({ visible, onClose, onConfirm, title, message, conf
     <Modal visible={visible} onClose={onClose} title={title} size="sm">
       <Text style={styles.confirmMessage}>{message}</Text>
       <View style={styles.confirmActions}>
-        <Button title={cancelText} variant="ghost" onPress={onClose} style={{ flex: 1, marginRight: 8 }} />
-        <Button title={confirmText} variant={variant} onPress={onConfirm} loading={loading} style={{ flex: 1 }} />
+        {cancelText ? <Button title={cancelText} variant="ghost" onPress={onClose} style={{ flex: 1, marginRight: 8 }} /> : null}
+        <Button title={confirmText} variant={variant} onPress={onConfirm} loading={loading} style={{ flex: cancelText ? 1 : undefined }} />
       </View>
     </Modal>
   );

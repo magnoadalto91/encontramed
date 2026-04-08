@@ -168,27 +168,35 @@ async function register(data) {
     }
 
     const { validarCrm } = require('../crm/crm.service');
-    let dadosCfm;
+    let dadosCfm = null;
+    let crmStatusInicial = 'NAO_VERIFICADO';
+
     try {
       dadosCfm = await validarCrm(crm, crmUf, data.captchaToken || null);
     } catch (err) {
-      throw Object.assign(
-        new Error('Não foi possível validar o CRM no momento. Tente novamente em alguns minutos.'),
-        { status: 503 }
-      );
+      if (err.serviceUnavailable) {
+        // Serviço de validação indisponível — permite cadastro, admin verifica manualmente
+        logger.warn(`[register] Serviço CFM indisponível para CRM ${crm}/${crmUf} — cadastro com NAO_VERIFICADO`);
+      } else {
+        throw err; // erro inesperado — propaga
+      }
     }
 
-    if (dadosCfm.situacao !== 'ATIVO') {
-      throw Object.assign(
-        new Error(`CRM ${crm}/${crmUf} está com situação "${dadosCfm.situacao}" no CFM. Apenas médicos com CRM ativo podem se cadastrar.`),
-        { status: 422 }
-      );
+    if (dadosCfm) {
+      if (dadosCfm.situacao !== 'ATIVO') {
+        throw Object.assign(
+          new Error(`CRM ${crm}/${crmUf} está com situação "${dadosCfm.situacao}" no CFM. Apenas médicos com CRM ativo podem se cadastrar.`),
+          { status: 422 }
+        );
+      }
+      crmStatusInicial = 'ATIVO';
     }
 
     // Store validated CFM data to persist after user creation
     data._dadosCfm = dadosCfm;
     data._crm = crm;
     data._crmUf = crmUf;
+    data._crmStatus = crmStatusInicial;
   }
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -225,9 +233,9 @@ async function register(data) {
         usuarioId: user.id,
         crm: data._crm,
         crmUf: data._crmUf,
-        crmStatus: 'ATIVO',
-        crmUltimaVerif: new Date(),
-        crmDadosCfm: data._dadosCfm,
+        crmStatus: data._crmStatus || 'NAO_VERIFICADO',
+        crmUltimaVerif: data._dadosCfm ? new Date() : null,
+        crmDadosCfm: data._dadosCfm || undefined,
       },
     });
 
