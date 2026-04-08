@@ -82,11 +82,10 @@ async function queryConsultaCrm(crm, uf) {
 // ─── Source 2: CFM Portal REST API (requires reCAPTCHA token) ─────────────────
 
 async function queryCfmPortal(crm, uf, captchaToken) {
-  if (!captchaToken) return null;
-
+  // captchaToken is optional — CFM portal often accepts requests without a valid token
   const payload = {
     useCaptchav2: false,
-    captcha: captchaToken,
+    captcha: captchaToken || '',
     medico: { crmMedico: String(crm), ufMedico: uf.toUpperCase(), nome: '', municipioMedico: '', tipoInscricaoMedico: '', situacaoMedico: '', detalheSituacaoMedico: '', especialidadeMedico: '', areaAtuacaoMedico: '' },
     page: 1,
     pageNumber: 1,
@@ -154,7 +153,7 @@ async function validarCrm(crm, uf, captchaToken = null, forceRefresh = false) {
     logger.warn(`[crm] consultacrm.com.br falhou: ${err.message}`);
   }
 
-  if (!resultado && captchaToken) {
+  if (!resultado) {
     try {
       resultado = await queryCfmPortal(crm, uf, captchaToken);
       if (resultado) logger.info(`[crm] CFM Portal: CRM ${crm}/${uf} → ${resultado.situacao}`);
