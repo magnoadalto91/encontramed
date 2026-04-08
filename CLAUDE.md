@@ -98,10 +98,13 @@ loginLimiter:    10 req / 15 min por IP   // POST /auth/login, /auth/recuperar-s
 registerLimiter:  5 req / 1h por IP       // POST /auth/register
 emailLimiter:     3 req / 15 min por IP   // /auth/verificar, /reenviar-verificacao
 
-// ATENÇÃO: usar ipKeyGenerator do próprio pacote para rotas autenticadas com userId
-const { ipKeyGenerator } = rateLimit;
-keyGenerator: (req) => req.userId ? String(req.userId) : ipKeyGenerator(req.ip)
-// req.ip direto em keyGenerator personalizado → ERR_ERL_KEY_GEN_IPV6 no Railway (IPv6)
+// ATENÇÃO: express-rate-limit v7 removeu ipKeyGenerator. Usar normalizeIp manual:
+const normalizeIp = (ip) => {
+  if (!ip) return 'unknown';
+  if (ip.startsWith('::ffff:')) return ip.slice(7); // IPv6-mapped IPv4
+  return ip;
+};
+keyGenerator: (req) => req.userId ? String(req.userId) : normalizeIp(req.ip)
 ```
 
 ---
@@ -365,13 +368,20 @@ router.get('/:id', handler);
 
 ### Rate limiter IPv6 no Railway
 
-```javascript
-// ❌ ERR_ERL_KEY_GEN_IPV6 — req.ip direto em keyGenerator
-keyGenerator: (req) => req.ip
+`ipKeyGenerator` foi **removido no express-rate-limit v7**. Usar função `normalizeIp` manual:
 
-// ✅ CORRETO — usar o helper do próprio pacote
-const { ipKeyGenerator } = require('express-rate-limit');
-keyGenerator: (req) => req.userId ? String(req.userId) : ipKeyGenerator(req.ip)
+```javascript
+// ❌ QUEBRA em produção — ipKeyGenerator não existe no v7
+const { ipKeyGenerator } = require('express-rate-limit'); // undefined!
+keyGenerator: (req) => ipKeyGenerator(req.ip) // TypeError: ipKeyGenerator is not a function
+
+// ✅ CORRETO — normalizar IPv6-mapped IPv4 manualmente
+const normalizeIp = (ip) => {
+  if (!ip) return 'unknown';
+  if (ip.startsWith('::ffff:')) return ip.slice(7);
+  return ip;
+};
+keyGenerator: (req) => req.userId ? String(req.userId) : normalizeIp(req.ip)
 ```
 
 ### Prisma — nunca usar --force-reset em produção
@@ -982,7 +992,7 @@ Sem `NODE_ENV=production`:
 
 | Erro | Causa | Solução |
 |---|---|---|
-| `ERR_ERL_KEY_GEN_IPV6` | `req.ip` direto em `keyGenerator` do express-rate-limit | Usar `ipKeyGenerator(req.ip)` do pacote |
+| `ipKeyGenerator is not a function` | `ipKeyGenerator` foi removido no express-rate-limit v7 | Usar `normalizeIp` manual: `const normalizeIp = (ip) => ip?.startsWith('::ffff:') ? ip.slice(7) : (ip \|\| 'unknown')` |
 | `React has detected a change in the order of Hooks` | Hook após early return | Mover todos os hooks para antes do primeiro `return` condicional |
 | `Cannot find native module 'ExpoDevice'` | Módulo nativo adicionado após último build | Reconstruir APK com `eas build --platform android --profile development` |
 | `google-services.json is missing` no EAS Build | Arquivo não resolvido antes do prebuild | Usar `app.config.js` com `process.env.GOOGLE_SERVICES_JSON || './google-services.json'` |
