@@ -8,6 +8,21 @@ import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../utils/constants';
 
+function maskPhone(v) {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 10) return d.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+  return d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+}
+
+function maskCNPJ(v) {
+  const d = v.replace(/\D/g, '').slice(0, 14);
+  return d
+    .replace(/(\d{2})(\d)/, '$1.$2')
+    .replace(/(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+}
+
 // ⚠️ ALL hooks BEFORE any conditional return
 export default function RegisterScreen({ navigation }) {
   const [role, setRole] = useState(null); // 'MEDICO' or 'HOSPITAL'
@@ -88,7 +103,7 @@ export default function RegisterScreen({ navigation }) {
                 <Input label="Nome completo" value={form.nomeCompleto} onChangeText={v => update('nomeCompleto', v)} placeholder="Dr. João Silva" error={errors.nomeCompleto} />
                 <Input label="E-mail" value={form.email} onChangeText={v => update('email', v)} placeholder="seu@email.com" keyboardType="email-address" error={errors.email} />
                 <Input label="Senha" value={form.senha} onChangeText={v => update('senha', v)} placeholder="Mínimo 8 caracteres" secureTextEntry error={errors.senha} />
-                <Input label="Telefone (opcional)" value={form.telefone} onChangeText={v => update('telefone', v)} placeholder="(11) 99999-9999" keyboardType="phone-pad" />
+                <Input label="Telefone (opcional)" value={form.telefone} onChangeText={v => update('telefone', maskPhone(v))} placeholder="(11) 99999-9999" keyboardType="phone-pad" />
 
                 {role === 'MEDICO' && (
                   <>
@@ -104,7 +119,7 @@ export default function RegisterScreen({ navigation }) {
                 )}
 
                 {role === 'HOSPITAL' && (
-                  <Input label="CNPJ" value={form.cnpj} onChangeText={v => update('cnpj', v)} placeholder="00.000.000/0000-00" keyboardType="numeric" error={errors.cnpj} />
+                  <Input label="CNPJ" value={form.cnpj} onChangeText={v => update('cnpj', maskCNPJ(v))} placeholder="00.000.000/0000-00" keyboardType="numeric" error={errors.cnpj} />
                 )}
 
                 <Button title="Criar conta" onPress={handleRegister} loading={loading} style={{ marginTop: 8 }} />
