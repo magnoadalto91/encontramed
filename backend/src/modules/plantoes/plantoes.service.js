@@ -307,18 +307,23 @@ async function notificarMedicosProximos(plantaoId, raioKm = 20) {
   logger.info(`[plantoes] Notificados ${proximos.length} médicos no raio de ${raioKm}km`);
 }
 
-async function getMeusPlantoes(userId) {
+async function getMeusPlantoes(userId, query = {}) {
   const hospital = await prisma.hospitais.findFirst({ where: { usuarioId: userId } });
   if (!hospital) throw Object.assign(new Error('Hospital não encontrado'), { status: 404 });
 
+  const where = { hospitalId: hospital.id };
+  if (query.status) where.status = query.status;
+  const limit = query.limit ? Math.min(Number(query.limit), 200) : undefined;
+
   return prisma.plantoes.findMany({
-    where: { hospitalId: hospital.id },
+    where,
     include: {
       especialidade: true,
       medico: { include: { usuario: { select: { nomeCompleto: true } } } },
       _count: { select: { candidaturas: true } },
     },
     orderBy: { dataInicio: 'desc' },
+    ...(limit ? { take: limit } : {}),
   });
 }
 

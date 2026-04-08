@@ -20,8 +20,11 @@ router.get('/disponiveis/mapa', auth, wrap(async (req, res) => {
   }));
   res.json(pins);
 }));
-router.get('/meus', auth, hospitalMw, wrap(async (req, res) => {
-  res.json(await svc.getMeusPlantoes(req.userId));
+router.get('/meus',     auth, hospitalMw, wrap(async (req, res) => {
+  res.json(await svc.getMeusPlantoes(req.userId, req.query));
+}));
+router.get('/hospital', auth, hospitalMw, wrap(async (req, res) => {
+  res.json(await svc.getMeusPlantoes(req.userId, req.query));
 }));
 
 // POST create
