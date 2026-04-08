@@ -2,9 +2,13 @@
 
 const rateLimit = require('express-rate-limit');
 
-// IMPORTANT: Railway runs on IPv6. Using req.ip directly in keyGenerator causes
-// ERR_ERL_KEY_GEN_IPV6. Always use ipKeyGenerator from express-rate-limit.
-const { ipKeyGenerator } = rateLimit;
+// express-rate-limit v7 handles IPv6 natively in its default keyGenerator.
+// For custom keyGenerators, normalize IPv6-mapped IPv4 (::ffff:x.x.x.x → x.x.x.x).
+const normalizeIp = (ip) => {
+  if (!ip) return 'unknown';
+  if (ip.startsWith('::ffff:')) return ip.slice(7);
+  return ip;
+};
 
 /**
  * Standard options applied to all limiters.
@@ -29,7 +33,7 @@ const loginLimiter = rateLimit({
   ...baseOptions,
   windowMs: 15 * 60 * 1000,
   max: 10,
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: (req) => normalizeIp(req.ip),
 });
 
 /**
@@ -40,7 +44,7 @@ const registerLimiter = rateLimit({
   ...baseOptions,
   windowMs: 60 * 60 * 1000,
   max: 5,
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: (req) => normalizeIp(req.ip),
 });
 
 /**
@@ -51,7 +55,7 @@ const emailLimiter = rateLimit({
   ...baseOptions,
   windowMs: 15 * 60 * 1000,
   max: 3,
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: (req) => normalizeIp(req.ip),
 });
 
 /**
@@ -63,7 +67,7 @@ const candidaturaLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 20,
   keyGenerator: (req) =>
-    req.userId ? String(req.userId) : ipKeyGenerator(req.ip),
+    req.userId ? String(req.userId) : normalizeIp(req.ip),
 });
 
 /**
@@ -75,7 +79,7 @@ const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
   keyGenerator: (req) =>
-    req.userId ? String(req.userId) : ipKeyGenerator(req.ip),
+    req.userId ? String(req.userId) : normalizeIp(req.ip),
 });
 
 module.exports = {
