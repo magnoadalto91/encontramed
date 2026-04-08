@@ -516,6 +516,47 @@ Criar `.gitattributes` na pasta mobile:
 
 Ou evitar shell scripts em hooks EAS — preferir `app.config.js` para lógica de build.
 
+### Upgrade de SDK — versões corretas para Expo SDK 54
+
+Ao fazer upgrade de SDK, **sempre usar `npx expo install --fix`** após atualizar o `expo` no package.json — ele corrige automaticamente as versões dos demais pacotes Expo.
+
+**Versões testadas e compatíveis com Expo SDK 54:**
+
+```json
+"expo": "~54.0.0",
+"react": "19.1.0",
+"react-native": "0.81.5",
+"react-native-reanimated": "~3.16.7",   ← NUNCA usar 4.x (veja abaixo)
+"react-native-screens": "~4.16.0",
+"react-native-safe-area-context": "~5.6.0",
+"react-native-gesture-handler": "~2.28.0",
+"expo-linear-gradient": "~15.0.8",
+"expo-secure-store": "~15.0.8",
+"expo-location": "~19.0.8",
+"expo-notifications": "~0.32.16"
+```
+
+**`npm install` em projetos RN/Expo sempre usar `--legacy-peer-deps`:**
+```bash
+npm install --legacy-peer-deps
+```
+O npm v7+ bloqueia peer deps conflitantes por padrão. O `--legacy-peer-deps` é o modo correto para projetos React Native — não é um hack, é o padrão da comunidade.
+
+### react-native-reanimated — NUNCA usar v4 com Expo Go
+
+`react-native-reanimated ~4.x` exige `react-native-worklets` como pacote separado (nova arquitetura). **O Expo Go não suporta isso.** Usar sempre `~3.x` para desenvolvimento com Expo Go.
+
+```
+// ❌ QUEBRA com Expo Go — exige react-native-worklets separado
+"react-native-reanimated": "~4.1.1"
+// Error: Cannot find module 'react-native-worklets/plugin'
+
+// ✅ CORRETO para Expo SDK 54 + Expo Go
+"react-native-reanimated": "~3.16.7"
+```
+
+Reanimated v4 só é viável em builds nativos (EAS Build com New Architecture habilitada).
+
 ### expo-device e outros módulos nativos
 
 Módulos nativos (que exigem código nativo compilado) requerem rebuild do APK após serem adicionados. Não funcionam com `npx expo start` (Expo Go). Requerem `--dev-client` com APK de desenvolvimento gerado via EAS.
@@ -1010,3 +1051,6 @@ Sem `NODE_ENV=production`:
 | `Cannot find module '../scripts/build-frontend.js'` no Railway | Script de build aponta para path relativo fora do Root Directory | O backend Node.js não precisa de build do frontend; usar `"build": "prisma generate"` no package.json |
 | `Cannot find module 'dotenv'` no Railway | `dotenv` estava ausente de `dependencies` (só funcionava localmente pois estava instalado globalmente) | Adicionar `dotenv` explicitamente em `dependencies` no package.json — em produção Railway usa `--omit=dev` |
 | `Missing API key. Pass it to the constructor new Resend(...)` | `new Resend(process.env.RESEND_API_KEY)` chamado na raiz do módulo — explode no boot se a env var não estiver definida | Instanciar serviços externos de forma lazy (dentro de uma função `getResend()`) e retornar `null` com `logger.warn` se a key não estiver configurada — nunca instanciar no top-level do módulo |
+| `Project is incompatible with this version of Expo Go` | SDK do projeto desatualizado em relação ao Expo Go instalado | Atualizar `expo` para o SDK do Expo Go instalado; rodar `npx expo install --fix` para corrigir dependências |
+| `Cannot find module 'react-native-worklets/plugin'` | `react-native-reanimated ~4.x` exige `react-native-worklets` separado, incompatível com Expo Go | Usar `react-native-reanimated ~3.x` para desenvolvimento com Expo Go; v4 só em EAS Build com New Architecture |
+| `ERESOLVE could not resolve` no `npm install` em projetos RN | npm v7+ bloqueia peer deps conflitantes por padrão | Sempre usar `npm install --legacy-peer-deps` em projetos React Native / Expo |
