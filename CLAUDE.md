@@ -1103,7 +1103,9 @@ Sem `NODE_ENV=production`:
 | 100–5.000/mês | `consultacrm.com.br` plano pago ou `consultar.io` (~R$0,20/query) | ~R$29–R$100/mês |
 | 5.000+/mês ou SLA garantido | Web Service SOAP oficial da CFM (R$772/ano CNPJ privado) | R$772/ano |
 
-**Comportamento atual sem `CONSULTACRM_KEY`:** o endpoint `/api/crm/validar` retorna 503. A validação no cadastro mobile falha com mensagem amigável — o médico pode cadastrar sem validar e vincular depois no perfil web.
+**Comportamento atual sem `CONSULTACRM_KEY`:** o endpoint `/api/crm/validar` retorna 503 — o `consultacrm.com.br` pula por falta de chave e o CFM Portal bloqueia por reCAPTCHA em produção. A validação no cadastro mobile falha com modal explicativo (graceful degradation) — o médico pode cadastrar sem validar e o CRM fica com status `NAO_VERIFICADO` para verificação manual pelo admin.
+
+> ⚠️ **Validação de CRM só funciona em produção com `CONSULTACRM_KEY` configurado.** Em desenvolvimento local e staging sem a chave, o serviço retorna 503 intencionalmente. Não tentar "consertar" isso — é comportamento esperado.
 
 ### 🟡 Mobile — build de produção
 
