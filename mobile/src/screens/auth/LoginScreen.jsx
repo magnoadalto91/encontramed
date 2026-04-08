@@ -46,9 +46,6 @@ export default function LoginScreen({ navigation }) {
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             {/* Logo */}
             <View style={styles.logoArea}>
-              <View style={styles.logoCircle}>
-                <Text style={styles.logoCircleText}>EM</Text>
-              </View>
               <Text style={styles.logoText}>
                 <Text style={styles.logoEncontra}>Encontra</Text>
                 <Text style={styles.logoMed}>Med</Text>
@@ -119,14 +116,7 @@ const styles = StyleSheet.create({
   kav: { flex: 1 },
   scroll: { flexGrow: 1, padding: 24, justifyContent: 'center' },
   logoArea: { alignItems: 'center', marginBottom: 40 },
-  logoCircle: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: 'rgba(38,208,206,0.15)',
-    borderWidth: 2, borderColor: COLORS.accent,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-  },
-  logoCircleText: { color: COLORS.accent, fontSize: 24, fontWeight: '800' },
-  logoText: { fontSize: 36, fontWeight: '800', marginBottom: 6 },
+  logoText: { fontSize: 40, fontWeight: '800', marginBottom: 6 },
   logoEncontra: { color: COLORS.accent },
   logoMed: { color: '#fff' },
   tagline: { color: COLORS.textMuted, fontSize: 11, letterSpacing: 2 },

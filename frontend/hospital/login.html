@@ -162,13 +162,13 @@
       try {
         const data = await api.post('/auth/login', { email, senha, plataforma: 'web' });
 
-        if (data.role !== 'HOSPITAL') {
+        if (data.user?.role !== 'HOSPITAL') {
           toast.error('Esta área é exclusiva para hospitais.');
           return;
         }
 
         localStorage.setItem('hospital_token', data.token);
-        localStorage.setItem('hospital_user', JSON.stringify(data.user || { nomeCompleto: data.nomeFantasia || email }));
+        localStorage.setItem('hospital_user', JSON.stringify(data.user || {}));
         window.location.href = 'dashboard.html';
       } catch (err) {
         toast.error(err.message || 'Credenciais inválidas.');
