@@ -138,7 +138,7 @@ export default function PlantaoDetailScreen({ route, navigation }) {
           {plantao.hospital ? (
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Hospital</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                 <View style={styles.hospitalIcon}>
                   <Ionicons name="business-outline" size={18} color={COLORS.accent} />
                 </View>
@@ -149,6 +149,15 @@ export default function PlantaoDetailScreen({ route, navigation }) {
                   )}
                 </View>
               </View>
+              {plantao.hospital.tipoEstabelecimento ? (
+                <Row icon="medical-outline" label="Tipo" value={plantao.hospital.tipoEstabelecimento} />
+              ) : null}
+              {plantao.hospital.codigoCNES ? (
+                <Row icon="barcode-outline" label="CNES" value={plantao.hospital.codigoCNES} />
+              ) : null}
+              {plantao.hospital.telefoneContato ? (
+                <Row icon="call-outline" label="Telefone" value={plantao.hospital.telefoneContato} />
+              ) : null}
             </View>
           ) : null}
 
