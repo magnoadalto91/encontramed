@@ -3,7 +3,7 @@
 const express = require('express');
 const router  = express.Router();
 const svc     = require('./chat.service');
-const authMiddleware  = require('../../middlewares/authMiddleware');
+const authMiddleware  = require('../../middlewares/auth.middleware');
 
 const wrap = fn => (req, res, next) => fn(req, res, next).catch(next);
 
