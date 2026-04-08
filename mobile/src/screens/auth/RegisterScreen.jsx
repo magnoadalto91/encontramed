@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingV
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
+import { authStore } from '../../store/authStore';
 import { useToast } from '../../components/ui/Toast';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
@@ -26,6 +27,7 @@ function maskCNPJ(v) {
 
 // ⚠️ ALL hooks BEFORE any conditional return
 export default function RegisterScreen({ navigation }) {
+  const loginStore = authStore(s => s.login);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(false);
   const [crmValidando, setCrmValidando] = useState(false);
@@ -145,9 +147,10 @@ export default function RegisterScreen({ navigation }) {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await api.post('/auth/register', { ...form, role });
-      showToast(res?.data?.message || 'Conta criada! Faça login para continuar.', 'success', 5000);
-      navigation.navigate('Login');
+      await api.post('/auth/register', { ...form, role });
+      // Auto-login após cadastro — navega direto para o app
+      await loginStore(form.email.trim().toLowerCase(), form.senha);
+      // RootNavigator detecta isAuthenticated e redireciona automaticamente
     } catch (err) {
       showToast(err?.message || 'Erro ao criar conta', 'error');
     } finally {
