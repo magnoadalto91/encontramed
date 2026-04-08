@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospitais — EncontraMed Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/variables.css"><link rel="stylesheet" href="css/reset.css"><link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header"><div class="logo-text"><span class="logo-encontra">Encontra</span><span class="logo-med">Med</span></div><div class="logo-tagline">Admin Panel</div></div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="medicos.html" class="nav-item"><span class="nav-icon">👨‍⚕️</span><span class="nav-label">Médicos</span></a>
+      <a href="hospitais.html" class="nav-item active"><span class="nav-icon">🏥</span><span class="nav-label">Hospitais</span></a>
+      <a href="plantoes.html" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Plantões</span></a>
+      <a href="documentos.html" class="nav-item"><span class="nav-icon">📄</span><span class="nav-label">Documentos</span></a>
+      <a href="financeiro.html" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Financeiro</span></a>
+      <a href="chamados.html" class="nav-item"><span class="nav-icon">🎧</span><span class="nav-label">Chamados</span></a>
+      <a href="config.html" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="avatar" id="user-avatar">A</div><div class="sidebar-user-info"><div class="sidebar-user-name" id="user-nome">Admin</div><div id="user-role" class="sidebar-user-role"></div></div></div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">⬅ Sair</button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left"><button class="sidebar-toggle" id="sidebar-toggle">☰</button><h1 class="page-title">Hospitais</h1></div>
+      <div class="topbar-right">
+        <div class="search-bar"><input type="text" id="search" placeholder="Buscar hospital..." class="input-field"><button class="btn btn-primary btn-sm" onclick="loadHospitais()">Buscar</button></div>
+        <select id="filter-verificado" class="select-field select-sm" onchange="loadHospitais()">
+          <option value="">Todos</option><option value="true">Verificados</option><option value="false">Não verificados</option>
+        </select>
+      </div>
+    </div>
+    <div class="page-content">
+      <div class="card">
+        <div class="card-body p-0">
+          <div class="table-container">
+            <table><thead><tr><th>Hospital</th><th>CNPJ</th><th>CNES</th><th>Cidade/UF</th><th>Verificado</th><th>Cadastrado</th><th>Ações</th></tr></thead>
+            <tbody id="hospitais-tbody"><tr><td colspan="7" class="text-center text-muted">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="js/api.js"></script><script src="js/auth.js"></script><script src="js/toast.js"></script><script src="js/modal.js"></script>
+<script>
+document.getElementById('sidebar-toggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+let currentPage = 1;
+
+async function loadHospitais(page = 1) {
+  currentPage = page;
+  const search = document.getElementById('search').value;
+  const verificado = document.getElementById('filter-verificado').value;
+  const params = new URLSearchParams({ page, limit: 20, role: 'HOSPITAL', ...(search&&{search}) });
+  const tbody = document.getElementById('hospitais-tbody');
+
+  try {
+    const data = await api.get(`/admin/usuarios?${params}`);
+    const usuarios = data.usuarios || [];
+    if (!usuarios.length) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🏥</div><div>Nenhum hospital encontrado</div></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = usuarios.map(u => {
+      const h = u.hospital || {};
+      if (verificado === 'true' && !h.verificado) return '';
+      if (verificado === 'false' && h.verificado) return '';
+      return `<tr>
+        <td><div class="fw-500">${h.nomeFantasia || h.razaoSocial || u.nomeCompleto}</div><div class="text-muted text-sm">${u.email}</div></td>
+        <td class="text-sm text-muted">${h.cnpj || '—'}</td>
+        <td class="text-sm text-muted">${h.codigoCNES || '—'}</td>
+        <td class="text-sm">${h.enderecoCidade ? `${h.enderecoCidade}/${h.enderecoEstado}` : '—'}</td>
+        <td>${h.verificado ? '<span class="badge badge-success">✓ Verificado</span>' : '<span class="badge badge-warning">Pendente</span>'}</td>
+        <td class="text-sm text-muted">${new Date(u.criadoEm).toLocaleDateString('pt-BR')}</td>
+        <td>
+          <div class="action-btns">
+            ${!h.verificado ? `<button class="btn btn-ghost btn-xs" style="color:var(--success)" onclick="verificar(${u.hospital?.id})">✅ Verificar</button>` : ''}
+            <button class="btn btn-ghost btn-xs" onclick="toggleAtivo(${u.id}, ${u.ativo}, '${(h.razaoSocial||'').replace(/'/g,"\\'")}')">
+              ${u.ativo ? '⛔' : '✅'}
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    renderPagination(data.page, data.pages);
+  } catch(err) { toast.error(err.message); }
+}
+
+async function verificar(hospitalId) {
+  try { await api.post(`/admin/hospitais/${hospitalId}/verificar`); toast.success('Hospital verificado!'); loadHospitais(currentPage); }
+  catch(err) { toast.error(err.message); }
+}
+
+async function toggleAtivo(id, ativo, nome) {
+  showConfirm(`${ativo?'Suspender':'Ativar'} ${nome}?`, async () => {
+    try { await api.put(`/admin/usuarios/${id}/${ativo?'suspender':'ativar'}`); toast.success('Atualizado!'); loadHospitais(currentPage); }
+    catch(err) { toast.error(err.message); }
+  });
+}
+
+function renderPagination(page, pages) {
+  const el = document.getElementById('pagination');
+  if (!pages || pages <= 1) { el.innerHTML = ''; return; }
+  el.innerHTML = `<button class="btn btn-ghost btn-sm" ${page<=1?'disabled':''} onclick="loadHospitais(${page-1})">← Anterior</button><span class="pagination-info">Página ${page} de ${pages}</span><button class="btn btn-ghost btn-sm" ${page>=pages?'disabled':''} onclick="loadHospitais(${page+1})">Próxima →</button>`;
+}
+
+document.getElementById('search').addEventListener('keydown', e => { if(e.key==='Enter') loadHospitais(); });
+loadHospitais();
+</script>
+</body></html>

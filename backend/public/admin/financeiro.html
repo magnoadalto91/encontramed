@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financeiro — EncontraMed Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/variables.css"><link rel="stylesheet" href="css/reset.css"><link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header"><div class="logo-text"><span class="logo-encontra">Encontra</span><span class="logo-med">Med</span></div><div class="logo-tagline">Admin Panel</div></div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="medicos.html" class="nav-item"><span class="nav-icon">👨‍⚕️</span><span class="nav-label">Médicos</span></a>
+      <a href="hospitais.html" class="nav-item"><span class="nav-icon">🏥</span><span class="nav-label">Hospitais</span></a>
+      <a href="plantoes.html" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Plantões</span></a>
+      <a href="documentos.html" class="nav-item"><span class="nav-icon">📄</span><span class="nav-label">Documentos</span></a>
+      <a href="financeiro.html" class="nav-item active"><span class="nav-icon">💰</span><span class="nav-label">Financeiro</span></a>
+      <a href="chamados.html" class="nav-item"><span class="nav-icon">🎧</span><span class="nav-label">Chamados</span></a>
+      <a href="config.html" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="avatar" id="user-avatar">A</div><div class="sidebar-user-info"><div class="sidebar-user-name" id="user-nome">Admin</div><div id="user-role" class="sidebar-user-role"></div></div></div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">⬅ Sair</button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left"><button class="sidebar-toggle" id="sidebar-toggle">☰</button><h1 class="page-title">Financeiro</h1></div>
+      <div class="topbar-right">
+        <select id="mes" class="select-field select-sm">
+          <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+          <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+          <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+          <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+        <select id="ano" class="select-field select-sm"></select>
+        <button class="btn btn-primary btn-sm" onclick="loadFinanceiro()">Filtrar</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportarCSV()">📥 CSV</button>
+      </div>
+    </div>
+    <div class="page-content">
+      <div class="stats-grid" id="fin-stats" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:24px;"></div>
+      <div class="card">
+        <div class="card-body p-0">
+          <div class="table-container">
+            <table id="fin-table"><thead><tr><th>Plantão</th><th>Médico</th><th>Hospital</th><th>Valor Bruto</th><th>Taxa (15%)</th><th>Líquido</th><th>NFe</th><th>Pago em</th><th>Ações</th></tr></thead>
+            <tbody id="fin-tbody"><tr><td colspan="9" class="text-center text-muted">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="js/api.js"></script><script src="js/auth.js"></script><script src="js/toast.js"></script><script src="js/modal.js"></script>
+<script>
+document.getElementById('sidebar-toggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+
+const hoje = new Date();
+document.getElementById('mes').value = hoje.getMonth() + 1;
+const anoEl = document.getElementById('ano');
+for (let a = hoje.getFullYear(); a >= hoje.getFullYear() - 3; a--) anoEl.innerHTML += `<option value="${a}">${a}</option>`;
+
+const NFE_BADGE = { PENDENTE:'badge-warning', EMITIDA:'badge-success', CANCELADA:'badge-danger', ERRO:'badge-danger' };
+let transacoesData = [];
+
+async function loadFinanceiro() {
+  const mes = document.getElementById('mes').value;
+  const ano = document.getElementById('ano').value;
+  const tbody = document.getElementById('fin-tbody');
+
+  try {
+    // Admin gets all transactions - use a general endpoint
+    const params = new URLSearchParams({ mes, ano });
+    const data = await api.get(`/financeiro/extrato?${params}`);
+    transacoesData = data.transacoes || [];
+    const totais = data.totais || {};
+
+    document.getElementById('fin-stats').innerHTML = `
+      ${sc('💰','Faturamento Bruto','R$ '+fmt(totais.bruto),'var(--accent)')}
+      ${sc('📊','Taxa Plataforma','R$ '+ fmt(totais.bruto-totais.liquido),'#1A6EBD')}
+      ${sc('✅','Total Recebido','R$ '+fmt(totais.recebido),'#10B981')}
+      ${sc('⏳','A Receber','R$ '+fmt(totais.aReceber),'#F59E0B')}
+    `;
+
+    tbody.innerHTML = transacoesData.map(t => `<tr>
+      <td class="text-sm">#${t.plantaoId||'—'}</td>
+      <td class="text-sm">${t.medico?.usuario?.nomeCompleto||'—'}</td>
+      <td class="text-sm">${t.hospital?.nomeFantasia||t.hospital?.razaoSocial||'—'}</td>
+      <td class="text-sm fw-500">R$ ${fmt(t.valorBruto)}</td>
+      <td class="text-sm text-muted">R$ ${fmt(t.valorTaxaPlat)}</td>
+      <td class="text-sm fw-500">R$ ${fmt(t.valorLiquido)}</td>
+      <td><span class="badge ${NFE_BADGE[t.nfeStatus]||'badge-gray'}">${t.nfeStatus}</span></td>
+      <td class="text-sm text-muted">${t.pagoEm ? new Date(t.pagoEm).toLocaleDateString('pt-BR') : '—'}</td>
+      <td>
+        ${!t.pagoEm ? `<button class="btn btn-ghost btn-xs" style="color:var(--success)" onclick="confirmarPagamento(${t.id})">✅ Pago</button>` : ''}
+      </td>
+    </tr>`).join('') || '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💰</div><div>Nenhuma transação</div></div></td></tr>';
+
+  } catch(err) { toast.error(err.message); }
+}
+
+async function confirmarPagamento(id) {
+  showConfirm('Confirmar pagamento desta transação?', async () => {
+    try { await api.post(`/admin/financeiro/pagamento/${id}/confirmar`); toast.success('Pagamento confirmado!'); loadFinanceiro(); }
+    catch(err) { toast.error(err.message); }
+  }, 'default');
+}
+
+function exportarCSV() {
+  if (!transacoesData.length) return toast.warning('Nenhum dado para exportar');
+  const rows = [['ID','Médico','Hospital','Bruto','Taxa','Líquido','NFe','Pago em']];
+  transacoesData.forEach(t => rows.push([t.id, t.medico?.usuario?.nomeCompleto, t.hospital?.razaoSocial, t.valorBruto, t.valorTaxaPlat, t.valorLiquido, t.nfeStatus, t.pagoEm||'']));
+  const csv = rows.map(r => r.join(';')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'financeiro.csv'; a.click();
+}
+
+function sc(icon, label, value, color) { return `<div class="stat-card"><div class="stat-icon" style="color:${color}">${icon}</div><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>`; }
+function fmt(n) { return Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
+
+loadFinanceiro();
+</script>
+</body></html>
