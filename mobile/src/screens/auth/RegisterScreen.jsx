@@ -34,6 +34,8 @@ export default function RegisterScreen({ navigation }) {
   const [modalIndisponivel, setModalIndisponivel] = useState(false);
   const [cnesBuscando, setCnesBuscando] = useState(false);
   const [cnesDados, setCnesDados] = useState(null);
+  const [cnesBuscado, setCnesBuscado] = useState(false);   // true após tentativa (sucesso ou falha)
+  const [cnesApiIndisponivel, setCnesApiIndisponivel] = useState(false); // API fora do ar
   const cnpjTimerRef = useRef(null);
   const [form, setForm] = useState({ nomeCompleto: '', email: '', senha: '', telefone: '', crm: '', crmUf: '', cnpj: '' });
   const [errors, setErrors] = useState({});
@@ -42,7 +44,7 @@ export default function RegisterScreen({ navigation }) {
   const update = (key, val) => {
     setForm(prev => ({ ...prev, [key]: val }));
     if (key === 'crm' || key === 'crmUf') { setCrmValidado(null); setCrmIndisponivel(false); }
-    if (key === 'cnpj') { setCnesDados(null); }
+    if (key === 'cnpj') { setCnesDados(null); setCnesBuscado(false); setCnesApiIndisponivel(false); }
   };
 
   // Auto-busca CNES quando CNPJ atinge 14 dígitos
@@ -52,14 +54,27 @@ export default function RegisterScreen({ navigation }) {
     clearTimeout(cnpjTimerRef.current);
     cnpjTimerRef.current = setTimeout(async () => {
       setCnesBuscando(true);
+      setCnesBuscado(false);
+      setCnesApiIndisponivel(false);
       try {
         const { data } = await api.get(`/hospitais/cnes/consultar?cnpj=${digits}`);
         setCnesDados(data);
+        setCnesBuscado(true);
         if (!form.nomeCompleto.trim() && data.razaoSocial) {
           setForm(prev => ({ ...prev, nomeCompleto: data.razaoSocial }));
         }
-      } catch {
-        // CNPJ não encontrado no CNES — não bloquear, só informar
+      } catch (err) {
+        setCnesBuscado(true);
+        const status = err?.status || err?.response?.status;
+        if (status === 404) {
+          showToast('CNPJ não encontrado na Receita Federal ou no CNES. Verifique o número digitado.', 'warning', 5000);
+        } else if (status === 400) {
+          showToast('CNPJ inválido — verifique os dígitos.', 'error');
+        } else {
+          // Rede/servidor fora do ar — permitir continuar
+          setCnesApiIndisponivel(true);
+          showToast('Não foi possível consultar o CNPJ agora. Você pode continuar e atualizar os dados depois.', 'warning', 5000);
+        }
       } finally {
         setCnesBuscando(false);
       }
@@ -82,7 +97,16 @@ export default function RegisterScreen({ navigation }) {
       }
     }
     if (role === 'HOSPITAL') {
-      if (!form.cnpj.replace(/\D/g,'') || form.cnpj.replace(/\D/g,'').length < 14) e.cnpj = 'CNPJ inválido';
+      const digits = form.cnpj.replace(/\D/g, '');
+      if (!digits || digits.length < 14) {
+        e.cnpj = 'CNPJ inválido';
+      } else if (cnesBuscando) {
+        e.cnpj = 'Aguarde — consultando CNPJ...';
+      } else if (!cnesBuscado) {
+        e.cnpj = 'Aguarde a validação automática do CNPJ';
+      } else if (!cnesDados && !cnesApiIndisponivel) {
+        e.cnpj = 'CNPJ não encontrado ou inválido. Verifique o número.';
+      }
     }
     setErrors(e);
     return Object.keys(e).length === 0;
