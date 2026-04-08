@@ -121,6 +121,13 @@ async function login(email, senha, plataforma, ipAddress, userAgent) {
 
   const token = await _criarSessao(user, plataforma, ipAddress, userAgent);
 
+  // Background CNES sync on every hospital login — non-blocking
+  if (user.role === 'HOSPITAL') {
+    setImmediate(() => _syncCNESBackground(user.id).catch(err =>
+      logger.warn(`[auth] CNES bg sync failed userId=${user.id}: ${err.message}`)
+    ));
+  }
+
   return {
     token,
     user: {
@@ -131,6 +138,35 @@ async function login(email, senha, plataforma, ipAddress, userAgent) {
       onboardingDone: user.onboardingDone,
     },
   };
+}
+
+async function _syncCNESBackground(userId) {
+  const hospital = await prisma.hospitais.findFirst({ where: { usuarioId: userId } });
+  if (!hospital?.cnpj || hospital.cnpj === '00000000000000') return;
+
+  const { buscarPorCNPJ } = require('../hospitais/cnes.service');
+  const dados = await buscarPorCNPJ(hospital.cnpj);
+  if (!dados) return;
+
+  await prisma.hospitais.update({
+    where: { id: hospital.id },
+    data: {
+      codigoCNES:          dados.codigoCNES          || hospital.codigoCNES          || undefined,
+      tipoEstabelecimento: dados.tipoEstabelecimento || hospital.tipoEstabelecimento || undefined,
+      enderecoLogradouro:  dados.enderecoLogradouro  || hospital.enderecoLogradouro  || undefined,
+      enderecoNumero:      dados.enderecoNumero      || hospital.enderecoNumero      || undefined,
+      enderecoBairro:      dados.enderecoBairro      || hospital.enderecoBairro      || undefined,
+      enderecoCidade:      dados.enderecoCidade      || hospital.enderecoCidade      || undefined,
+      enderecoEstado:      dados.enderecoEstado      || hospital.enderecoEstado      || undefined,
+      enderecoCep:         dados.enderecoCep         || hospital.enderecoCep         || undefined,
+      telefoneContato:     dados.telefoneContato     || hospital.telefoneContato     || undefined,
+      latitude:            dados.latitude            ?? hospital.latitude,
+      longitude:           dados.longitude           ?? hospital.longitude,
+      cnesDados:           dados,
+      cnesUltimaConsulta:  new Date(),
+    },
+  });
+  logger.info(`[auth] CNES sync OK para hospital ${hospital.id} (${hospital.cnpj})`);
 }
 
 /**

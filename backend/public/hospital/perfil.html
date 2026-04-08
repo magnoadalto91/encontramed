@@ -19,7 +19,6 @@
           <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-normal);color:var(--text-secondary);margin-top:2px;">Portal Hospital</div>
         </div>
       </a>
-
       <nav class="sidebar-nav">
         <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
         <a href="plantoes.html" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Plantões</span></a>
@@ -27,7 +26,6 @@
         <a href="candidaturas.html" class="nav-item"><span class="nav-icon">👥</span><span class="nav-label">Candidaturas</span></a>
         <a href="perfil.html" class="nav-item active"><span class="nav-icon">🏥</span><span class="nav-label">Perfil</span></a>
       </nav>
-
       <div class="sidebar-footer">
         <div style="display:flex;align-items:center;gap:var(--space-3);">
           <div class="avatar" id="user-avatar">H</div>
@@ -54,73 +52,90 @@
 
         <div id="perfil-content" style="display:none;">
 
-          <!-- CNPJ + busca CNES -->
-          <div class="card" style="margin-bottom:var(--space-6);">
+          <!-- Painel CNES (auto-carregado) -->
+          <div class="card" style="margin-bottom:var(--space-6);" id="cnes-card">
             <div class="card-header">
               <div>
-                <div class="card-title">Dados do CNPJ &amp; CNES</div>
-                <div class="card-subtitle">Preencha automaticamente via Receita Federal e DATASUS</div>
+                <div class="card-title">Dados CNES / Receita Federal</div>
+                <div class="card-subtitle" id="cnes-status-text">Carregando dados públicos...</div>
               </div>
-            </div>
-            <div style="display:flex;gap:var(--space-3);align-items:flex-end;flex-wrap:wrap;">
-              <div class="form-group" style="flex:1;min-width:200px;margin:0;">
-                <label class="form-label">CNPJ</label>
-                <input type="text" class="input-field" id="p-cnpj" disabled style="opacity:0.65;cursor:not-allowed;" />
-              </div>
-              <button class="btn btn-primary" id="btn-buscar-cnes" onclick="buscarCNES()" style="white-space:nowrap;">
-                🔍 Buscar dados no CNES
-              </button>
+              <button class="btn btn-ghost btn-sm" id="btn-atualizar-cnes" onclick="sincronizarCNES(true)" title="Forçar atualização">🔄 Atualizar</button>
             </div>
 
-            <!-- Painel CNES — aparece após busca -->
-            <div id="cnes-panel" style="display:none;margin-top:var(--space-5);">
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-4);margin-bottom:var(--space-4);">
+            <!-- Loading CNES -->
+            <div id="cnes-loading" style="padding:var(--space-6);text-align:center;">
+              <div class="spinner" style="margin:0 auto;"></div>
+              <div style="color:var(--text-secondary);font-size:13px;margin-top:12px;">Consultando Receita Federal e DATASUS...</div>
+            </div>
+
+            <!-- Painel CNES — aparece após sync -->
+            <div id="cnes-panel" style="display:none;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--space-4);margin-bottom:var(--space-5);">
                 <div class="stat-card">
                   <div class="stat-label">Código CNES</div>
                   <div class="stat-value" id="cnes-codigo">—</div>
                 </div>
                 <div class="stat-card">
                   <div class="stat-label">Tipo de Unidade</div>
-                  <div class="stat-value" style="font-size:14px;" id="cnes-tipo">—</div>
+                  <div class="stat-value" style="font-size:13px;line-height:1.3;" id="cnes-tipo">—</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-label">Total de Leitos</div>
+                  <div class="stat-label">Total Leitos</div>
                   <div class="stat-value" id="cnes-leitos-total">—</div>
                 </div>
                 <div class="stat-card">
                   <div class="stat-label">Leitos SUS</div>
                   <div class="stat-value" id="cnes-leitos-sus">—</div>
                 </div>
+                <div class="stat-card" id="cnes-card-nao-sus">
+                  <div class="stat-label">Leitos Não-SUS</div>
+                  <div class="stat-value" id="cnes-leitos-nao-sus">—</div>
+                </div>
+                <div class="stat-card" id="cnes-card-contratados" style="display:none;">
+                  <div class="stat-label">Leitos Contratados</div>
+                  <div class="stat-value" id="cnes-leitos-contratados">—</div>
+                </div>
+              </div>
+
+              <!-- Informações adicionais -->
+              <div id="cnes-info-extra" style="display:none;margin-bottom:var(--space-4);display:flex;flex-wrap:wrap;gap:var(--space-3);">
+                <span id="cnes-gestao" class="badge badge-info" style="display:none;"></span>
+                <span id="cnes-turno" class="badge badge-info" style="display:none;"></span>
+                <span id="cnes-natureza" class="badge badge-info" style="display:none;"></span>
               </div>
 
               <!-- Leitos detalhados -->
-              <div id="cnes-leitos-section" style="display:none;margin-bottom:var(--space-4);">
+              <div id="cnes-leitos-section" style="display:none;margin-bottom:var(--space-5);">
                 <div style="font-weight:600;font-size:14px;color:var(--color-text);margin-bottom:var(--space-3);">🛏 Leitos por tipo</div>
                 <div class="table-scroll-wrap">
                   <table>
-                    <thead><tr><th>Tipo de Leito</th><th>Existentes</th><th>SUS</th><th>Não-SUS</th></tr></thead>
+                    <thead><tr><th>Tipo de Leito</th><th style="text-align:right;">Existentes</th><th style="text-align:right;">SUS</th><th style="text-align:right;">Não-SUS</th><th style="text-align:right;">Contratados</th></tr></thead>
                     <tbody id="cnes-leitos-tbody"></tbody>
                   </table>
                 </div>
               </div>
 
               <!-- Equipamentos -->
-              <div id="cnes-equipamentos-section" style="display:none;">
+              <div id="cnes-equipamentos-section" style="display:none;margin-bottom:var(--space-5);">
                 <div style="font-weight:600;font-size:14px;color:var(--color-text);margin-bottom:var(--space-3);">🔬 Equipamentos cadastrados</div>
                 <div class="table-scroll-wrap">
                   <table>
-                    <thead><tr><th>Equipamento</th><th>Qtd. Existente</th><th>Em Uso</th></tr></thead>
+                    <thead><tr><th>Equipamento</th><th style="text-align:right;">Qtd. Existente</th><th style="text-align:right;">Em Uso</th></tr></thead>
                     <tbody id="cnes-equip-tbody"></tbody>
                   </table>
                 </div>
               </div>
 
-              <div style="margin-top:var(--space-4);display:flex;gap:var(--space-3);align-items:center;">
-                <span id="cnes-ultima-consulta" style="font-size:12px;color:var(--color-text-muted);"></span>
-                <button class="btn btn-primary btn-sm" id="btn-aplicar-cnes" onclick="aplicarDadosCNES()">
-                  ✅ Aplicar dados nos campos abaixo
-                </button>
+              <!-- Serviços -->
+              <div id="cnes-servicos-section" style="display:none;">
+                <div style="font-weight:600;font-size:14px;color:var(--color-text);margin-bottom:var(--space-3);">🏥 Serviços de saúde</div>
+                <div id="cnes-servicos-list" style="display:flex;flex-wrap:wrap;gap:var(--space-2);"></div>
               </div>
+            </div>
+
+            <!-- CNES indisponível -->
+            <div id="cnes-unavailable" style="display:none;padding:var(--space-4);color:var(--text-muted);font-size:13px;">
+              ⚠️ Não foi possível obter dados do CNES para este CNPJ. Os dados podem ser inseridos manualmente nos campos abaixo.
             </div>
           </div>
 
@@ -135,6 +150,10 @@
                 </div>
               </div>
               <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+                <div class="form-group">
+                  <label class="form-label">CNPJ</label>
+                  <input type="text" class="input-field" id="p-cnpj" disabled style="opacity:0.65;cursor:not-allowed;" />
+                </div>
                 <div class="form-group">
                   <label class="form-label">Razão Social</label>
                   <input type="text" class="input-field" id="p-razao-social" />
@@ -235,125 +254,163 @@
       document.getElementById('main-content').classList.toggle('sidebar-collapsed');
     });
 
-    let _cnesDados = null;
+    let _cnpj = null;
 
     async function loadPerfil() {
       try {
         const h = await api.get('/hospitais/me');
 
-        document.getElementById('p-cnpj').value         = h.cnpj              || '';
-        document.getElementById('p-razao-social').value = h.razaoSocial       || '';
-        document.getElementById('p-nome-fantasia').value= h.nomeFantasia      || '';
-        document.getElementById('p-cnes').value         = h.codigoCNES        || '';
-        document.getElementById('p-tipo').value         = h.tipoEstabelecimento || '';
-        document.getElementById('p-telefone').value     = h.telefoneContato   || '';
-        document.getElementById('p-email').value        = h.usuario?.email    || h.email || '';
+        _cnpj = h.cnpj || null;
+        document.getElementById('p-cnpj').value          = h.cnpj               || '';
+        document.getElementById('p-razao-social').value  = h.razaoSocial        || '';
+        document.getElementById('p-nome-fantasia').value = h.nomeFantasia       || '';
+        document.getElementById('p-cnes').value          = h.codigoCNES         || '';
+        document.getElementById('p-tipo').value          = h.tipoEstabelecimento || '';
+        document.getElementById('p-telefone').value      = h.telefoneContato    || '';
+        document.getElementById('p-email').value         = h.usuario?.email     || h.email || '';
 
-        document.getElementById('e-logradouro').value   = h.enderecoLogradouro || '';
-        document.getElementById('e-numero').value       = h.enderecoNumero    || '';
-        document.getElementById('e-bairro').value       = h.enderecoBairro    || '';
-        document.getElementById('e-cidade').value       = h.enderecoCidade    || '';
-        document.getElementById('e-estado').value       = h.enderecoEstado    || '';
-        document.getElementById('e-cep').value          = h.enderecoCep       || '';
-
-        // Se já foi consultado antes, mostrar o painel CNES
-        if (h.cnesDados) {
-          _cnesDados = h.cnesDados;
-          renderCnesPanel(h.cnesDados, h.cnesUltimaConsulta);
-        }
+        document.getElementById('e-logradouro').value    = h.enderecoLogradouro || '';
+        document.getElementById('e-numero').value        = h.enderecoNumero     || '';
+        document.getElementById('e-bairro').value        = h.enderecoBairro     || '';
+        document.getElementById('e-cidade').value        = h.enderecoCidade     || '';
+        document.getElementById('e-estado').value        = h.enderecoEstado     || '';
+        document.getElementById('e-cep').value           = h.enderecoCep        || '';
 
         document.getElementById('loading-perfil').style.display = 'none';
         document.getElementById('perfil-content').style.display = 'block';
+
+        const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const precisaSync = !h.cnesDados || !h.cnesUltimaConsulta ||
+                            new Date(h.cnesUltimaConsulta) < seteDiasAtras;
+
+        if (h.cnesDados) {
+          // Mostrar dados salvos imediatamente
+          renderCnesPanel(h.cnesDados, h.cnesUltimaConsulta);
+          // Sync silencioso em background se expirado
+          if (precisaSync && _cnpj && _cnpj !== '00000000000000') {
+            sincronizarCNES(false);
+          }
+        } else if (_cnpj && _cnpj !== '00000000000000') {
+          // Primeira vez — mostrar loading e sincronizar
+          sincronizarCNES(true);
+        } else {
+          // CNPJ não configurado
+          document.getElementById('cnes-loading').style.display = 'none';
+          document.getElementById('cnes-unavailable').style.display = 'block';
+          document.getElementById('cnes-status-text').textContent = 'CNPJ não configurado';
+        }
+
       } catch (err) {
         document.getElementById('loading-perfil').innerHTML =
           `<div style="color:var(--text-secondary)">Erro ao carregar perfil. <button class="btn btn-ghost btn-sm" onclick="loadPerfil()">Tentar novamente</button></div>`;
       }
     }
 
-    async function buscarCNES() {
-      const cnpj = document.getElementById('p-cnpj').value.replace(/\D/g, '');
-      if (!cnpj || cnpj.length !== 14) { toast.warning('CNPJ inválido'); return; }
+    async function sincronizarCNES(showLoading = true) {
+      if (!_cnpj || _cnpj === '00000000000000') return;
 
-      const btn = document.getElementById('btn-buscar-cnes');
+      const btn = document.getElementById('btn-atualizar-cnes');
       btn.disabled = true;
-      btn.textContent = '⏳ Consultando...';
+
+      if (showLoading) {
+        document.getElementById('cnes-panel').style.display = 'none';
+        document.getElementById('cnes-unavailable').style.display = 'none';
+        document.getElementById('cnes-loading').style.display = 'block';
+        document.getElementById('cnes-status-text').textContent = 'Consultando Receita Federal e DATASUS...';
+      }
 
       try {
-        const dados = await api.get(`/hospitais/cnes/consultar?cnpj=${cnpj}`);
-        _cnesDados = dados;
+        const dados = await api.post('/hospitais/cnes/vincular', { cnpj: _cnpj });
         renderCnesPanel(dados, new Date().toISOString());
-        toast.success('Dados encontrados! Clique em "Aplicar" para preencher os campos.');
+        // Atualiza campos do formulário com dados novos
+        if (dados.codigoCNES)         document.getElementById('p-cnes').value  = dados.codigoCNES;
+        if (dados.tipoEstabelecimento) document.getElementById('p-tipo').value = dados.tipoEstabelecimento;
+        if (dados.telefoneContato)     document.getElementById('p-telefone').value = dados.telefoneContato;
+        if (dados.enderecoLogradouro)  document.getElementById('e-logradouro').value = dados.enderecoLogradouro;
+        if (dados.enderecoNumero)      document.getElementById('e-numero').value = dados.enderecoNumero;
+        if (dados.enderecoBairro)      document.getElementById('e-bairro').value = dados.enderecoBairro;
+        if (dados.enderecoCidade)      document.getElementById('e-cidade').value = dados.enderecoCidade;
+        if (dados.enderecoEstado)      document.getElementById('e-estado').value = dados.enderecoEstado;
+        if (dados.enderecoCep)         document.getElementById('e-cep').value = dados.enderecoCep.replace(/(\d{5})(\d{3})/, '$1-$2');
       } catch (err) {
-        toast.error(err.message || 'CNPJ não encontrado no CNES/Receita Federal');
+        document.getElementById('cnes-loading').style.display = 'none';
+        document.getElementById('cnes-unavailable').style.display = 'block';
+        document.getElementById('cnes-status-text').textContent = 'Dados CNES indisponíveis';
+        if (showLoading) toast.warning('Não foi possível obter dados do CNES. Preencha manualmente.');
       } finally {
         btn.disabled = false;
-        btn.textContent = '🔍 Buscar dados no CNES';
       }
     }
 
     function renderCnesPanel(dados, ultimaConsulta) {
       if (!dados) return;
+      document.getElementById('cnes-loading').style.display = 'none';
+      document.getElementById('cnes-unavailable').style.display = 'none';
       document.getElementById('cnes-panel').style.display = 'block';
+
+      if (ultimaConsulta) {
+        document.getElementById('cnes-status-text').textContent =
+          'Atualizado em ' + new Date(ultimaConsulta).toLocaleString('pt-BR');
+      }
 
       document.getElementById('cnes-codigo').textContent = dados.codigoCNES || '—';
       document.getElementById('cnes-tipo').textContent   = dados.tipoEstabelecimento || '—';
 
       if (dados.leitos) {
-        document.getElementById('cnes-leitos-total').textContent = dados.leitos.total || '0';
-        document.getElementById('cnes-leitos-sus').textContent   = dados.leitos.sus   || '0';
+        document.getElementById('cnes-leitos-total').textContent   = dados.leitos.total  ?? '—';
+        document.getElementById('cnes-leitos-sus').textContent     = dados.leitos.sus    ?? '—';
+        document.getElementById('cnes-leitos-nao-sus').textContent = dados.leitos.naoSus ?? '—';
+
+        if (dados.leitos.contratados > 0) {
+          document.getElementById('cnes-card-contratados').style.display = '';
+          document.getElementById('cnes-leitos-contratados').textContent = dados.leitos.contratados;
+        }
 
         if (dados.leitos.detalhes?.length) {
-          const sec = document.getElementById('cnes-leitos-section');
-          sec.style.display = 'block';
+          document.getElementById('cnes-leitos-section').style.display = 'block';
           document.getElementById('cnes-leitos-tbody').innerHTML = dados.leitos.detalhes.map(l =>
             `<tr>
               <td>${l.tipo}</td>
-              <td><strong>${l.existentes}</strong></td>
-              <td>${l.sus}</td>
-              <td>${l.naoSus}</td>
+              <td style="text-align:right;"><strong>${l.existentes}</strong></td>
+              <td style="text-align:right;">${l.sus}</td>
+              <td style="text-align:right;">${l.naoSus}</td>
+              <td style="text-align:right;">${l.contratados || 0}</td>
             </tr>`
           ).join('');
         }
       } else {
-        document.getElementById('cnes-leitos-total').textContent = 'N/D';
-        document.getElementById('cnes-leitos-sus').textContent   = 'N/D';
+        document.getElementById('cnes-leitos-total').textContent   = 'N/D';
+        document.getElementById('cnes-leitos-sus').textContent     = 'N/D';
+        document.getElementById('cnes-leitos-nao-sus').textContent = 'N/D';
       }
 
       if (dados.equipamentos?.length) {
-        const sec = document.getElementById('cnes-equipamentos-section');
-        sec.style.display = 'block';
+        document.getElementById('cnes-equipamentos-section').style.display = 'block';
         document.getElementById('cnes-equip-tbody').innerHTML = dados.equipamentos.map(e =>
           `<tr>
             <td>${e.nome}</td>
-            <td><strong>${e.quantidade}</strong></td>
-            <td>${e.emUso}</td>
+            <td style="text-align:right;"><strong>${e.quantidade}</strong></td>
+            <td style="text-align:right;">${e.emUso || 0}</td>
           </tr>`
         ).join('');
       }
 
-      if (ultimaConsulta) {
-        document.getElementById('cnes-ultima-consulta').textContent =
-          'Consultado em ' + new Date(ultimaConsulta).toLocaleString('pt-BR');
+      if (dados.servicos?.length) {
+        document.getElementById('cnes-servicos-section').style.display = 'block';
+        document.getElementById('cnes-servicos-list').innerHTML = dados.servicos.map(s =>
+          `<span class="badge badge-info" title="${s.classificacao || ''}">${s.servico}</span>`
+        ).join('');
       }
-    }
 
-    function aplicarDadosCNES() {
-      if (!_cnesDados) return;
-      const d = _cnesDados;
-
-      if (d.razaoSocial)         document.getElementById('p-razao-social').value  = d.razaoSocial;
-      if (d.nomeFantasia)        document.getElementById('p-nome-fantasia').value = d.nomeFantasia;
-      if (d.codigoCNES)          document.getElementById('p-cnes').value          = d.codigoCNES;
-      if (d.tipoEstabelecimento) document.getElementById('p-tipo').value          = d.tipoEstabelecimento;
-      if (d.telefoneContato)     document.getElementById('p-telefone').value      = d.telefoneContato;
-      if (d.enderecoLogradouro)  document.getElementById('e-logradouro').value    = d.enderecoLogradouro;
-      if (d.enderecoNumero)      document.getElementById('e-numero').value        = d.enderecoNumero;
-      if (d.enderecoBairro)      document.getElementById('e-bairro').value        = d.enderecoBairro;
-      if (d.enderecoCidade)      document.getElementById('e-cidade').value        = d.enderecoCidade;
-      if (d.enderecoEstado)      document.getElementById('e-estado').value        = d.enderecoEstado;
-      if (d.enderecoCep)         document.getElementById('e-cep').value           = d.enderecoCep.replace(/(\d{5})(\d{3})/, '$1-$2');
-
-      toast.success('Campos preenchidos! Revise e salve.');
+      // Badges extras
+      const badgeGestao   = document.getElementById('cnes-gestao');
+      const badgeTurno    = document.getElementById('cnes-turno');
+      const badgeNatureza = document.getElementById('cnes-natureza');
+      let temExtra = false;
+      if (dados.tipoGestao) { badgeGestao.textContent = '🏛 ' + dados.tipoGestao; badgeGestao.style.display = ''; temExtra = true; }
+      if (dados.turnoAtendimento) { badgeTurno.textContent = '🕐 ' + dados.turnoAtendimento; badgeTurno.style.display = ''; temExtra = true; }
+      if (dados.naturezaJuridica) { badgeNatureza.textContent = dados.naturezaJuridica; badgeNatureza.style.display = ''; temExtra = true; }
+      if (temExtra) document.getElementById('cnes-info-extra').style.display = 'flex';
     }
 
     document.getElementById('btn-salvar-dados').addEventListener('click', async () => {
@@ -366,8 +423,6 @@
           codigoCNES:          document.getElementById('p-cnes').value.trim() || undefined,
           tipoEstabelecimento: document.getElementById('p-tipo').value.trim(),
           telefoneContato:     document.getElementById('p-telefone').value.trim(),
-          cnesDados:           _cnesDados || undefined,
-          cnesUltimaConsulta:  _cnesDados ? new Date().toISOString() : undefined,
         });
         toast.success('Dados salvos com sucesso!');
       } catch (err) { toast.error(err.message); }
@@ -399,8 +454,7 @@
     window.addEventListener('resize', adjustGrid);
     adjustGrid();
 
-    window.buscarCNES = buscarCNES;
-    window.aplicarDadosCNES = aplicarDadosCNES;
+    window.sincronizarCNES = sincronizarCNES;
 
     loadPerfil();
   </script>

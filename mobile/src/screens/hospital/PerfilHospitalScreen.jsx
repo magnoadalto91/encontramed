@@ -84,18 +84,21 @@ export default function PerfilHospitalScreen({ navigation }) {
                     <LeitoStat label="Total" value={cnes.leitos.total} />
                     <LeitoStat label="SUS" value={cnes.leitos.sus} color={COLORS.success} />
                     <LeitoStat label="Não-SUS" value={cnes.leitos.naoSus} color={COLORS.textMuted} />
+                    {cnes.leitos.contratados > 0 && (
+                      <LeitoStat label="Contrat." value={cnes.leitos.contratados} color={COLORS.accent} />
+                    )}
                   </View>
                   {cnes.leitos.detalhes?.length > 0 && (
                     <View style={{ marginTop: 8 }}>
-                      {cnes.leitos.detalhes.slice(0, 6).map((l, i) => (
+                      {cnes.leitos.detalhes.slice(0, 8).map((l, i) => (
                         <View key={i} style={styles.leitoItem}>
                           <Text style={styles.leitoNome} numberOfLines={1}>{l.tipo}</Text>
                           <Text style={styles.leitoQtd}>{l.existentes}</Text>
                         </View>
                       ))}
-                      {cnes.leitos.detalhes.length > 6 && (
+                      {cnes.leitos.detalhes.length > 8 && (
                         <Text style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 4 }}>
-                          +{cnes.leitos.detalhes.length - 6} tipos
+                          +{cnes.leitos.detalhes.length - 8} tipos
                         </Text>
                       )}
                     </View>
@@ -106,17 +109,36 @@ export default function PerfilHospitalScreen({ navigation }) {
               {cnes.equipamentos?.length > 0 && (
                 <>
                   <Text style={[styles.subTitle, { marginTop: 16 }]}>🔬 Equipamentos</Text>
-                  {cnes.equipamentos.slice(0, 8).map((e, i) => (
+                  {cnes.equipamentos.slice(0, 10).map((e, i) => (
                     <View key={i} style={styles.leitoItem}>
                       <Text style={styles.leitoNome} numberOfLines={1}>{e.nome}</Text>
-                      <Text style={styles.leitoQtd}>{e.quantidade}</Text>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={styles.leitoQtd}>{e.quantidade}</Text>
+                        {e.emUso > 0 && <Text style={{ color: COLORS.textMuted, fontSize: 10 }}>{e.emUso} em uso</Text>}
+                      </View>
                     </View>
                   ))}
-                  {cnes.equipamentos.length > 8 && (
+                  {cnes.equipamentos.length > 10 && (
                     <Text style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 4 }}>
-                      +{cnes.equipamentos.length - 8} equipamentos
+                      +{cnes.equipamentos.length - 10} equipamentos
                     </Text>
                   )}
+                </>
+              )}
+
+              {cnes.servicos?.length > 0 && (
+                <>
+                  <Text style={[styles.subTitle, { marginTop: 16 }]}>🏥 Serviços</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                    {cnes.servicos.slice(0, 12).map((s, i) => (
+                      <View key={i} style={styles.servicoBadge}>
+                        <Text style={styles.servicoText} numberOfLines={1}>{s.servico}</Text>
+                      </View>
+                    ))}
+                    {cnes.servicos.length > 12 && (
+                      <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>+{cnes.servicos.length - 12}</Text>
+                    )}
+                  </View>
                 </>
               )}
 
@@ -207,4 +229,6 @@ const styles = StyleSheet.create({
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   menuIcon: { fontSize: 18, marginRight: 12, width: 24 },
   menuLabel: { flex: 1, color: '#fff', fontSize: 15 },
+  servicoBadge: { backgroundColor: 'rgba(38,208,206,0.12)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(38,208,206,0.25)' },
+  servicoText: { color: COLORS.accent, fontSize: 11, fontWeight: '600' },
 });
