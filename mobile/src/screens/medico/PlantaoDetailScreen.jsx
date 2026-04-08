@@ -197,10 +197,32 @@ export default function PlantaoDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* Chat button for confirmed */}
-          {['CONFIRMADO', 'REALIZADO'].includes(plantao.status) && (
+          {/* Confirmed: chat + contract */}
+          {plantao.status === 'CONFIRMADO' && (
             <View style={styles.actions}>
               <Button title="Abrir chat" onPress={openChat} />
+              <Button
+                title="Ver contrato"
+                variant="ghost"
+                onPress={() => navigation.navigate('Contrato', { plantaoId: id, titulo: plantao.titulo })}
+                style={{ marginTop: 8 }}
+              />
+            </View>
+          )}
+
+          {/* Realizado/Pago: rate */}
+          {['REALIZADO', 'PAGO'].includes(plantao.status) && (
+            <View style={styles.actions}>
+              <Button
+                title="Avaliar este plantão"
+                onPress={() => navigation.navigate('Avaliacao', {
+                  plantaoId: id,
+                  titulo: plantao.titulo,
+                  nomeAvaliado: plantao.hospital?.nomeFantasia || plantao.hospital?.razaoSocial,
+                  dataInicio: plantao.dataInicio,
+                })}
+              />
+              <Button title="Abrir chat" variant="ghost" onPress={openChat} style={{ marginTop: 8 }} />
             </View>
           )}
 

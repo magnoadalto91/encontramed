@@ -6,6 +6,7 @@ import { COLORS } from '../utils/constants';
 import HomeScreen from '../screens/medico/HomeScreen';
 import MeusPlantoesScreen from '../screens/medico/MeusPlantoesScreen';
 import EscalasScreen from '../screens/medico/EscalasScreen';
+import WalletScreen from '../screens/medico/WalletScreen';
 import PerfilScreen from '../screens/medico/PerfilScreen';
 
 const Tab = createBottomTabNavigator();
@@ -13,7 +14,7 @@ const Tab = createBottomTabNavigator();
 const TAB_ICONS = {
   Inicio:   { active: 'home',           inactive: 'home-outline' },
   Plantoes: { active: 'calendar',        inactive: 'calendar-outline' },
-  Escalas:  { active: 'albums',          inactive: 'albums-outline' },
+  Wallet:   { active: 'wallet',          inactive: 'wallet-outline' },
   Perfil:   { active: 'person-circle',   inactive: 'person-circle-outline' },
 };
 
@@ -39,7 +40,7 @@ export default function MedicoNavigator() {
     >
       <Tab.Screen name="Inicio"   component={HomeScreen}           options={{ title: 'Início' }} />
       <Tab.Screen name="Plantoes" component={MeusPlantoesScreen}   options={{ title: 'Plantões' }} />
-      <Tab.Screen name="Escalas"  component={EscalasScreen}        options={{ title: 'Escalas' }} />
+      <Tab.Screen name="Wallet"   component={WalletScreen}         options={{ title: 'Carteira' }} />
       <Tab.Screen name="Perfil"   component={PerfilScreen}         options={{ title: 'Perfil' }} />
     </Tab.Navigator>
   );

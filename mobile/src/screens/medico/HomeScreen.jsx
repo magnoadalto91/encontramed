@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +26,7 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(!_cache.plantoes);
   const [refreshing, setRefreshing] = useState(false);
   const [raio, setRaio] = useState(50);
+  const [urgente, setUrgente] = useState(null); // { id, titulo, hospital }
 
   const { location } = useLocation();
 
@@ -54,6 +55,9 @@ export default function HomeScreen({ navigation }) {
   useWebSocket((msg) => {
     if (msg.type === 'novo_plantao') {
       carregar();
+      if (msg.urgente) {
+        setUrgente({ id: msg.plantaoId, titulo: msg.titulo, hospital: msg.hospitalNome });
+      }
     }
   });
 
@@ -62,6 +66,24 @@ export default function HomeScreen({ navigation }) {
   return (
     <LinearGradient colors={['#0A1628', '#0D1B2E']} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
+        {/* Urgente banner */}
+        {urgente && (
+          <TouchableOpacity
+            style={styles.urgenteBanner}
+            onPress={() => { setUrgente(null); navigation.navigate('PlantaoDetail', { id: urgente.id }); }}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="flash" size={18} color="#fff" />
+            <View style={{ flex: 1, marginHorizontal: 10 }}>
+              <Text style={styles.urgenteTitle}>Plantão URGENTE próximo!</Text>
+              <Text style={styles.urgenteSub} numberOfLines={1}>{urgente.titulo} · {urgente.hospital}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setUrgente(null)}>
+              <Ionicons name="close" size={18} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -134,4 +156,10 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingTop: 8 },
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyText: { color: COLORS.textMuted, fontSize: 14, textAlign: 'center', marginTop: 12 },
+  urgenteBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#c0392b', paddingHorizontal: 16, paddingVertical: 12,
+  },
+  urgenteTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  urgenteSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
 });

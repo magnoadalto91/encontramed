@@ -31,6 +31,8 @@ const geoRoutes = require('./src/modules/geolocalizacao/geo.routes');
 const adminRoutes = require('./src/modules/admin/admin.routes');
 const crmRoutes = require('./src/modules/crm/crm.routes');
 const chatRoutes = require('./src/modules/chat/chat.routes');
+const avaliacoesRoutes = require('./src/modules/avaliacoes/avaliacoes.routes');
+const walletRoutes = require('./src/modules/financeiro/wallet.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -72,6 +74,8 @@ app.use('/api/geo', geoRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/avaliacoes', avaliacoesRoutes);
+app.use('/api/wallet', walletRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 

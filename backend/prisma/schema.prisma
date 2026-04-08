@@ -158,6 +158,8 @@ model medicos {
   resumo                String?
   valorHoraBase         Decimal?  @db.Decimal(10, 2)
   primeiroContratoAssinado Boolean @default(false)
+  notaMedia             Float?
+  totalAvaliacoes       Int      @default(0)
   criadoEm              DateTime  @default(now())
   atualizadoEm          DateTime  @updatedAt
 
@@ -238,6 +240,8 @@ model hospitais {
   cnesDados            Json?
   cnesUltimaConsulta   DateTime?
   verificado           Boolean   @default(false)
+  notaMedia            Float?
+  totalAvaliacoes      Int       @default(0)
   criadoEm             DateTime  @default(now())
   atualizadoEm         DateTime  @updatedAt
 
@@ -283,6 +287,11 @@ model plantoes {
   atualizadoEm      DateTime       @updatedAt
   realizadoEm       DateTime?
   pagoEm            DateTime?
+  recorrente        Boolean        @default(false)
+  recorrenciaTipo   String?
+  recorrenciaDias   String?
+  recorrenciaFim    DateTime?
+  plantaoPaiId      Int?
 
   hospital          hospitais      @relation(fields: [hospitalId], references: [id])
   especialidade     especialidades @relation(fields: [especialidadeId], references: [id])
@@ -294,8 +303,10 @@ model plantoes {
   trocasDestino     trocas[]       @relation("PlantaoDestino")
   contrato          contratos?
   transacao         transacoes?
-  avaliacao         avaliacoes?
+  avaliacoes        avaliacoes[]
   mensagens         mensagens_plantao[]
+  plantaoPai        plantoes?      @relation("RecorrenciaFilhos", fields: [plantaoPaiId], references: [id])
+  plantoesFilhos    plantoes[]     @relation("RecorrenciaFilhos")
 }
 
 model candidaturas {
@@ -412,6 +423,8 @@ model contratos {
   templateVersao        String         @default("1.0")
   conteudoJson          Json?
   urlAssinado           String?
+  aceiteIp              String?
+  aceiteUserAgent       String?
   criadoEm              DateTime       @default(now())
   atualizadoEm          DateTime       @updatedAt
   assinadoEm            DateTime?
@@ -466,18 +479,21 @@ model notificacoes {
 
 model avaliacoes {
   id          Int      @id @default(autoincrement())
-  plantaoId   Int      @unique
+  plantaoId   Int
   avaliadorId Int
+  tipo        String   // MEDICO_AVALIA_HOSPITAL | HOSPITAL_AVALIA_MEDICO
   medicoId    Int?
   hospitalId  Int?
   nota        Int
   comentario  String?
   criadoEm    DateTime @default(now())
 
-  plantao     plantoes  @relation(fields: [plantaoId], references: [id])
-  avaliador   usuarios  @relation("AvaliadorAvaliacoes", fields: [avaliadorId], references: [id])
-  medico      medicos?  @relation("MedicoAvaliacoes", fields: [medicoId], references: [id])
+  plantao     plantoes   @relation(fields: [plantaoId], references: [id])
+  avaliador   usuarios   @relation("AvaliadorAvaliacoes", fields: [avaliadorId], references: [id])
+  medico      medicos?   @relation("MedicoAvaliacoes", fields: [medicoId], references: [id])
   hospital    hospitais? @relation("HospitalAvaliacoes", fields: [hospitalId], references: [id])
+
+  @@unique([plantaoId, avaliadorId])
 }
 
 model chamados {

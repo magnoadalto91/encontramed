@@ -149,10 +149,10 @@ async function criarPlantao(data, userId) {
     },
   });
 
-  // Notify nearby doctors for urgent shifts
-  if (plantao.urgente) {
-    notificarMedicosProximos(plantao.id, 20).catch(err => logger.error('[plantoes] Erro ao notificar:', err.message));
-  }
+  // Notify nearby doctors — urgent = 20km realtime banner; all = 100km push
+  notificarMedicosProximos(plantao.id, plantao.urgente ? 20 : 100).catch(err =>
+    logger.error('[plantoes] Erro ao notificar:', err.message)
+  );
 
   return plantao;
 }
@@ -292,6 +292,24 @@ async function notificarMedicosProximos(plantaoId, raioKm = 20) {
     m.latitude && haversineKm(plantao.latitude, plantao.longitude, m.latitude, m.longitude) <= raioKm
   );
 
+  if (proximos.length === 0) return;
+
+  const hospitalRecord = await prisma.hospitais.findUnique({ where: { id: plantao.hospitalId }, select: { nomeFantasia: true, razaoSocial: true } });
+  const hospitalNome = hospitalRecord?.nomeFantasia || hospitalRecord?.razaoSocial || '';
+
+  // WebSocket push for real-time banner
+  proximos.forEach(m => {
+    try {
+      sendToUser(m.usuario.id, {
+        type: 'novo_plantao',
+        plantaoId,
+        urgente: plantao.urgente,
+        titulo: plantao.titulo,
+        hospitalNome,
+      });
+    } catch {}
+  });
+
   const pushTokens = proximos.map(m => m.usuario.pushToken).filter(Boolean);
   if (pushTokens.length === 0) return;
 
@@ -299,8 +317,8 @@ async function notificarMedicosProximos(plantaoId, raioKm = 20) {
   const { notificarGrupo } = require('../notificacoes/notificacoes.service');
   const userIds = proximos.map(m => m.usuario.id);
   await notificarGrupo(userIds,
-    `🏥 Plantão disponível - ${plantao.especialidade.nome}`,
-    `Valor: R$ ${Number(plantao.valorBase).toFixed(2)} • ${plantao.urgente ? '⚡ URGENTE' : ''}`,
+    plantao.urgente ? `⚡ Plantão URGENTE — ${plantao.especialidade.nome}` : `🏥 Plantão disponível — ${plantao.especialidade.nome}`,
+    `${hospitalNome} · R$ ${Number(plantao.valorBase).toFixed(2)}`,
     'plantao_novo',
     { plantaoId }
   );
@@ -328,7 +346,91 @@ async function getMeusPlantoes(userId, query = {}) {
   });
 }
 
+async function criarPlantaoRecorrente(data, userId) {
+  const hospital = await prisma.hospitais.findFirst({ where: { usuarioId: userId } });
+  if (!hospital) throw Object.assign(new Error('Hospital não encontrado'), { status: 404 });
+
+  const { especialidadeId, dataInicio, dataFim, valorBase, tipoValor, recorrenciaTipo, recorrenciaDias, recorrenciaFim, ...rest } = data;
+
+  const esp = await prisma.especialidades.findUnique({ where: { id: Number(especialidadeId) } });
+  if (!esp) throw Object.assign(new Error('Especialidade não encontrada'), { status: 404 });
+
+  const inicio = new Date(dataInicio);
+  const fim    = new Date(dataFim);
+  const duracaoHoras = (fim - inicio) / (1000 * 60 * 60);
+  const fimRecorrencia = new Date(recorrenciaFim);
+
+  // Build list of dates based on recorrenciaTipo
+  const datas = [];
+  let cur = new Date(inicio);
+  const dias = recorrenciaDias ? String(recorrenciaDias).split(',').map(Number) : null;
+
+  while (cur <= fimRecorrencia) {
+    if (!dias || dias.includes(cur.getDay())) {
+      datas.push(new Date(cur));
+    }
+    if (recorrenciaTipo === 'DIARIA') cur.setDate(cur.getDate() + 1);
+    else if (recorrenciaTipo === 'SEMANAL') cur.setDate(cur.getDate() + 1);
+    else if (recorrenciaTipo === 'MENSAL') cur.setMonth(cur.getMonth() + 1);
+    else break;
+  }
+
+  if (datas.length === 0) throw Object.assign(new Error('Nenhuma data gerada com esses parâmetros'), { status: 400 });
+  if (datas.length > 52) throw Object.assign(new Error('Máximo 52 ocorrências por recorrência'), { status: 400 });
+
+  // Create parent + all child plantoes
+  const pai = await prisma.plantoes.create({
+    data: {
+      hospitalId: hospital.id,
+      especialidadeId: Number(especialidadeId),
+      dataInicio: inicio,
+      dataFim: fim,
+      duracaoHoras,
+      valorBase: Number(valorBase),
+      tipoValor: tipoValor || 'FIXO',
+      latitude: hospital.latitude,
+      longitude: hospital.longitude,
+      tipo: 'AVULSO',
+      status: 'ABERTO',
+      recorrente: true,
+      recorrenciaTipo,
+      recorrenciaDias: dias ? dias.join(',') : null,
+      recorrenciaFim: fimRecorrencia,
+      ...rest,
+    },
+  });
+
+  // Create remaining occurrences (skip first date which is already the pai)
+  const filhos = [];
+  for (const dt of datas.slice(1)) {
+    const iFim = new Date(dt.getTime() + (fim - inicio));
+    const filho = await prisma.plantoes.create({
+      data: {
+        hospitalId: hospital.id,
+        especialidadeId: Number(especialidadeId),
+        dataInicio: dt,
+        dataFim: iFim,
+        duracaoHoras,
+        valorBase: Number(valorBase),
+        tipoValor: tipoValor || 'FIXO',
+        latitude: hospital.latitude,
+        longitude: hospital.longitude,
+        tipo: 'AVULSO',
+        status: 'ABERTO',
+        recorrente: true,
+        recorrenciaTipo,
+        plantaoPaiId: pai.id,
+        ...rest,
+      },
+    });
+    filhos.push(filho);
+  }
+
+  return { pai, filhos, total: 1 + filhos.length };
+}
+
 module.exports = {
   listarDisponiveis, getById, criarPlantao, confirmarCandidatura,
   marcarRealizado, cancelarPlantao, notificarMedicosProximos, getMeusPlantoes,
+  criarPlantaoRecorrente,
 };
