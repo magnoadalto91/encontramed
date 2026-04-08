@@ -107,6 +107,7 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
+    <>
     <ConfirmModal
       visible={modalIndisponivel}
       title="Serviço CFM indisponível"
@@ -218,6 +219,7 @@ export default function RegisterScreen({ navigation }) {
         </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
+    </>
   );
 }
 
