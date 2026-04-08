@@ -234,6 +234,8 @@ model hospitais {
   responsavelNome      String?
   responsavelCRM       String?
   telefoneContato      String?
+  cnesDados            Json?
+  cnesUltimaConsulta   DateTime?
   verificado           Boolean   @default(false)
   criadoEm             DateTime  @default(now())
   atualizadoEm         DateTime  @updatedAt

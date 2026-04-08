@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,15 +32,40 @@ export default function RegisterScreen({ navigation }) {
   const [crmValidado, setCrmValidado] = useState(null); // dados da CFM após validação
   const [crmIndisponivel, setCrmIndisponivel] = useState(false); // serviço CFM fora do ar
   const [modalIndisponivel, setModalIndisponivel] = useState(false);
+  const [cnesBuscando, setCnesBuscando] = useState(false);
+  const [cnesDados, setCnesDados] = useState(null);
+  const cnpjTimerRef = useRef(null);
   const [form, setForm] = useState({ nomeCompleto: '', email: '', senha: '', telefone: '', crm: '', crmUf: '', cnpj: '' });
   const [errors, setErrors] = useState({});
   const showToast = useToast();
 
   const update = (key, val) => {
     setForm(prev => ({ ...prev, [key]: val }));
-    // Reset CRM validation when CRM/UF changes
     if (key === 'crm' || key === 'crmUf') { setCrmValidado(null); setCrmIndisponivel(false); }
+    if (key === 'cnpj') { setCnesDados(null); }
   };
+
+  // Auto-busca CNES quando CNPJ atinge 14 dígitos
+  useEffect(() => {
+    const digits = form.cnpj.replace(/\D/g, '');
+    if (role !== 'HOSPITAL' || digits.length !== 14) return;
+    clearTimeout(cnpjTimerRef.current);
+    cnpjTimerRef.current = setTimeout(async () => {
+      setCnesBuscando(true);
+      try {
+        const { data } = await api.get(`/hospitais/cnes/consultar?cnpj=${digits}`);
+        setCnesDados(data);
+        if (!form.nomeCompleto.trim() && data.razaoSocial) {
+          setForm(prev => ({ ...prev, nomeCompleto: data.razaoSocial }));
+        }
+      } catch {
+        // CNPJ não encontrado no CNES — não bloquear, só informar
+      } finally {
+        setCnesBuscando(false);
+      }
+    }, 600);
+    return () => clearTimeout(cnpjTimerRef.current);
+  }, [form.cnpj, role]);
 
   const validate = () => {
     const e = {};
@@ -204,7 +229,40 @@ export default function RegisterScreen({ navigation }) {
                 <Input label="Telefone (opcional)" value={form.telefone} onChangeText={v => update('telefone', maskPhone(v))} placeholder="(11) 99999-9999" keyboardType="phone-pad" />
 
                 {role === 'HOSPITAL' && (
-                  <Input label="CNPJ" value={form.cnpj} onChangeText={v => update('cnpj', maskCNPJ(v))} placeholder="00.000.000/0000-00" keyboardType="numeric" error={errors.cnpj} />
+                  <>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Input label="CNPJ" value={form.cnpj} onChangeText={v => update('cnpj', maskCNPJ(v))} placeholder="00.000.000/0000-00" keyboardType="numeric" error={errors.cnpj} />
+                      </View>
+                      {cnesBuscando && (
+                        <View style={{ paddingBottom: 20 }}>
+                          <ActivityIndicator size="small" color={COLORS.accent} />
+                        </View>
+                      )}
+                    </View>
+                    {cnesDados && (
+                      <View style={styles.cnesCard}>
+                        <Text style={styles.cnesTitle}>🏥 Dados do CNES / Receita Federal</Text>
+                        {cnesDados.razaoSocial ? <Text style={styles.cnesRow}><Text style={styles.cnesLabel}>Razão Social: </Text>{cnesDados.razaoSocial}</Text> : null}
+                        {cnesDados.nomeFantasia ? <Text style={styles.cnesRow}><Text style={styles.cnesLabel}>Nome Fantasia: </Text>{cnesDados.nomeFantasia}</Text> : null}
+                        {cnesDados.codigoCNES ? <Text style={styles.cnesRow}><Text style={styles.cnesLabel}>CNES: </Text>{cnesDados.codigoCNES}</Text> : null}
+                        {cnesDados.tipoEstabelecimento ? <Text style={styles.cnesRow}><Text style={styles.cnesLabel}>Tipo: </Text>{cnesDados.tipoEstabelecimento}</Text> : null}
+                        {cnesDados.enderecoCidade ? <Text style={styles.cnesRow}><Text style={styles.cnesLabel}>Cidade: </Text>{cnesDados.enderecoCidade}{cnesDados.enderecoEstado ? `/${cnesDados.enderecoEstado}` : ''}</Text> : null}
+                        {cnesDados.leitos?.total > 0 && (
+                          <Text style={styles.cnesRow}>
+                            <Text style={styles.cnesLabel}>Leitos: </Text>
+                            {cnesDados.leitos.total} total ({cnesDados.leitos.sus} SUS / {cnesDados.leitos.naoSus} não-SUS)
+                          </Text>
+                        )}
+                        {cnesDados.equipamentos?.length > 0 && (
+                          <Text style={styles.cnesRow}><Text style={styles.cnesLabel}>Equipamentos: </Text>{cnesDados.equipamentos.length} tipos cadastrados</Text>
+                        )}
+                        <Text style={[styles.cnesRow, { marginTop: 6, color: COLORS.accent, fontSize: 12 }]}>
+                          ✓ Dados preenchidos automaticamente no perfil após o cadastro
+                        </Text>
+                      </View>
+                    )}
+                  </>
                 )}
 
                 <Button title="Criar conta" onPress={handleRegister} loading={loading} style={{ marginTop: 8 }} />
@@ -253,4 +311,11 @@ const styles = StyleSheet.create({
   cfmTitle: { color: COLORS.success, fontSize: 13, fontWeight: '700', marginBottom: 8 },
   cfmRow: { color: COLORS.textSecondary, fontSize: 13, marginBottom: 4, lineHeight: 18 },
   cfmLabel: { color: COLORS.textMuted, fontWeight: '600' },
+  cnesCard: {
+    backgroundColor: 'rgba(38,208,206,0.07)', borderRadius: 10, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(38,208,206,0.25)', marginBottom: 16, marginTop: 4,
+  },
+  cnesTitle: { color: COLORS.accent, fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  cnesRow: { color: COLORS.textSecondary, fontSize: 13, marginBottom: 4, lineHeight: 18 },
+  cnesLabel: { color: COLORS.textMuted, fontWeight: '600' },
 });

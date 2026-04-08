@@ -21,26 +21,11 @@
       </a>
 
       <nav class="sidebar-nav">
-        <a href="dashboard.html" class="nav-item">
-          <span class="nav-icon">📊</span>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        <a href="plantoes.html" class="nav-item">
-          <span class="nav-icon">📅</span>
-          <span class="nav-label">Plantões</span>
-        </a>
-        <a href="escalas.html" class="nav-item">
-          <span class="nav-icon">🗓</span>
-          <span class="nav-label">Escalas</span>
-        </a>
-        <a href="candidaturas.html" class="nav-item">
-          <span class="nav-icon">👥</span>
-          <span class="nav-label">Candidaturas</span>
-        </a>
-        <a href="perfil.html" class="nav-item active">
-          <span class="nav-icon">🏥</span>
-          <span class="nav-label">Perfil</span>
-        </a>
+        <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+        <a href="plantoes.html" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Plantões</span></a>
+        <a href="escalas.html" class="nav-item"><span class="nav-icon">🗓</span><span class="nav-label">Escalas</span></a>
+        <a href="candidaturas.html" class="nav-item"><span class="nav-icon">👥</span><span class="nav-label">Candidaturas</span></a>
+        <a href="perfil.html" class="nav-item active"><span class="nav-icon">🏥</span><span class="nav-label">Perfil</span></a>
       </nav>
 
       <div class="sidebar-footer">
@@ -68,7 +53,78 @@
         <div id="loading-perfil" class="loading-overlay"><div class="spinner"></div></div>
 
         <div id="perfil-content" style="display:none;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);">
+
+          <!-- CNPJ + busca CNES -->
+          <div class="card" style="margin-bottom:var(--space-6);">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Dados do CNPJ &amp; CNES</div>
+                <div class="card-subtitle">Preencha automaticamente via Receita Federal e DATASUS</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:var(--space-3);align-items:flex-end;flex-wrap:wrap;">
+              <div class="form-group" style="flex:1;min-width:200px;margin:0;">
+                <label class="form-label">CNPJ</label>
+                <input type="text" class="input-field" id="p-cnpj" disabled style="opacity:0.65;cursor:not-allowed;" />
+              </div>
+              <button class="btn btn-primary" id="btn-buscar-cnes" onclick="buscarCNES()" style="white-space:nowrap;">
+                🔍 Buscar dados no CNES
+              </button>
+            </div>
+
+            <!-- Painel CNES — aparece após busca -->
+            <div id="cnes-panel" style="display:none;margin-top:var(--space-5);">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-4);margin-bottom:var(--space-4);">
+                <div class="stat-card">
+                  <div class="stat-label">Código CNES</div>
+                  <div class="stat-value" id="cnes-codigo">—</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Tipo de Unidade</div>
+                  <div class="stat-value" style="font-size:14px;" id="cnes-tipo">—</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Total de Leitos</div>
+                  <div class="stat-value" id="cnes-leitos-total">—</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Leitos SUS</div>
+                  <div class="stat-value" id="cnes-leitos-sus">—</div>
+                </div>
+              </div>
+
+              <!-- Leitos detalhados -->
+              <div id="cnes-leitos-section" style="display:none;margin-bottom:var(--space-4);">
+                <div style="font-weight:600;font-size:14px;color:var(--color-text);margin-bottom:var(--space-3);">🛏 Leitos por tipo</div>
+                <div class="table-scroll-wrap">
+                  <table>
+                    <thead><tr><th>Tipo de Leito</th><th>Existentes</th><th>SUS</th><th>Não-SUS</th></tr></thead>
+                    <tbody id="cnes-leitos-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Equipamentos -->
+              <div id="cnes-equipamentos-section" style="display:none;">
+                <div style="font-weight:600;font-size:14px;color:var(--color-text);margin-bottom:var(--space-3);">🔬 Equipamentos cadastrados</div>
+                <div class="table-scroll-wrap">
+                  <table>
+                    <thead><tr><th>Equipamento</th><th>Qtd. Existente</th><th>Em Uso</th></tr></thead>
+                    <tbody id="cnes-equip-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div style="margin-top:var(--space-4);display:flex;gap:var(--space-3);align-items:center;">
+                <span id="cnes-ultima-consulta" style="font-size:12px;color:var(--color-text-muted);"></span>
+                <button class="btn btn-primary btn-sm" id="btn-aplicar-cnes" onclick="aplicarDadosCNES()">
+                  ✅ Aplicar dados nos campos abaixo
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);" class="perfil-grid">
 
             <!-- Card: Dados da Empresa -->
             <div class="card">
@@ -78,37 +134,35 @@
                   <div class="card-subtitle">Informações institucionais do hospital</div>
                 </div>
               </div>
-              <form id="form-dados" novalidate>
-                <div style="display:flex;flex-direction:column;gap:var(--space-4);">
-                  <div class="form-group">
-                    <label class="form-label">Razão Social</label>
-                    <input type="text" class="input-field" id="p-razao-social" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Nome Fantasia</label>
-                    <input type="text" class="input-field" id="p-nome-fantasia" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">CNPJ</label>
-                    <input type="text" class="input-field" id="p-cnpj" disabled style="opacity:0.6;cursor:not-allowed;" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">CNES</label>
-                    <input type="text" class="input-field" id="p-cnes" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Telefone</label>
-                    <input type="tel" class="input-field" id="p-telefone" placeholder="(11) 99999-9999" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">E-mail</label>
-                    <input type="email" class="input-field" id="p-email" disabled style="opacity:0.6;cursor:not-allowed;" />
-                  </div>
-                  <div style="display:flex;justify-content:flex-end;margin-top:var(--space-2);">
-                    <button type="button" class="btn btn-primary" id="btn-salvar-dados">Salvar Dados</button>
-                  </div>
+              <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+                <div class="form-group">
+                  <label class="form-label">Razão Social</label>
+                  <input type="text" class="input-field" id="p-razao-social" />
                 </div>
-              </form>
+                <div class="form-group">
+                  <label class="form-label">Nome Fantasia</label>
+                  <input type="text" class="input-field" id="p-nome-fantasia" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">CNES</label>
+                  <input type="text" class="input-field" id="p-cnes" placeholder="Código CNES" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tipo de Estabelecimento</label>
+                  <input type="text" class="input-field" id="p-tipo" placeholder="Ex: Hospital Geral" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Telefone</label>
+                  <input type="tel" class="input-field" id="p-telefone" placeholder="(11) 99999-9999" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">E-mail</label>
+                  <input type="email" class="input-field" id="p-email" disabled style="opacity:0.6;cursor:not-allowed;" />
+                </div>
+                <div style="display:flex;justify-content:flex-end;">
+                  <button type="button" class="btn btn-primary" id="btn-salvar-dados">Salvar Dados</button>
+                </div>
+              </div>
             </div>
 
             <!-- Card: Endereço -->
@@ -119,54 +173,48 @@
                   <div class="card-subtitle">Localização do hospital</div>
                 </div>
               </div>
-              <form id="form-endereco" novalidate>
-                <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+              <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+                <div class="form-group">
+                  <label class="form-label">Logradouro</label>
+                  <input type="text" class="input-field" id="e-logradouro" placeholder="Rua, Avenida..." />
+                </div>
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-3);">
                   <div class="form-group">
-                    <label class="form-label">Logradouro</label>
-                    <input type="text" class="input-field" id="e-logradouro" placeholder="Rua, Avenida..." />
-                  </div>
-                  <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-4);">
-                    <div class="form-group">
-                      <label class="form-label">Número</label>
-                      <input type="text" class="input-field" id="e-numero" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Complemento</label>
-                      <input type="text" class="input-field" id="e-complemento" placeholder="Sala, Bloco..." />
-                    </div>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Bairro</label>
-                    <input type="text" class="input-field" id="e-bairro" />
-                  </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);">
-                    <div class="form-group">
-                      <label class="form-label">Cidade</label>
-                      <input type="text" class="input-field" id="e-cidade" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Estado (UF)</label>
-                      <select class="select-field" id="e-estado">
-                        <option value="">Selecione...</option>
-                        <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
-                        <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
-                        <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
-                        <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
-                        <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
-                        <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
-                        <option>SP</option><option>SE</option><option>TO</option>
-                      </select>
-                    </div>
+                    <label class="form-label">Número</label>
+                    <input type="text" class="input-field" id="e-numero" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">CEP</label>
                     <input type="text" class="input-field" id="e-cep" placeholder="00000-000" />
                   </div>
-                  <div style="display:flex;justify-content:flex-end;margin-top:var(--space-2);">
-                    <button type="button" class="btn btn-primary" id="btn-salvar-endereco">Salvar Endereço</button>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Bairro</label>
+                  <input type="text" class="input-field" id="e-bairro" />
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+                  <div class="form-group">
+                    <label class="form-label">Cidade</label>
+                    <input type="text" class="input-field" id="e-cidade" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Estado (UF)</label>
+                    <select class="select-field" id="e-estado">
+                      <option value="">Selecione...</option>
+                      <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+                      <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+                      <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+                      <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+                      <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                      <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+                      <option>SP</option><option>SE</option><option>TO</option>
+                    </select>
                   </div>
                 </div>
-              </form>
+                <div style="display:flex;justify-content:flex-end;">
+                  <button type="button" class="btn btn-primary" id="btn-salvar-endereco">Salvar Endereço</button>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -187,78 +235,172 @@
       document.getElementById('main-content').classList.toggle('sidebar-collapsed');
     });
 
+    let _cnesDados = null;
+
     async function loadPerfil() {
       try {
-        const data = await api.get('/hospitais/me');
-        const h = data.hospital || data;
+        const h = await api.get('/hospitais/me');
 
-        document.getElementById('p-razao-social').value  = h.razaoSocial  || '';
-        document.getElementById('p-nome-fantasia').value = h.nomeFantasia || '';
-        document.getElementById('p-cnpj').value          = h.cnpj         || '';
-        document.getElementById('p-cnes').value          = h.cnes         || '';
-        document.getElementById('p-telefone').value      = h.telefone     || '';
-        document.getElementById('p-email').value         = h.email        || h.user?.email || '';
+        document.getElementById('p-cnpj').value         = h.cnpj              || '';
+        document.getElementById('p-razao-social').value = h.razaoSocial       || '';
+        document.getElementById('p-nome-fantasia').value= h.nomeFantasia      || '';
+        document.getElementById('p-cnes').value         = h.codigoCNES        || '';
+        document.getElementById('p-tipo').value         = h.tipoEstabelecimento || '';
+        document.getElementById('p-telefone').value     = h.telefoneContato   || '';
+        document.getElementById('p-email').value        = h.usuario?.email    || h.email || '';
 
-        const end = h.endereco || h;
-        document.getElementById('e-logradouro').value  = end.logradouro  || '';
-        document.getElementById('e-numero').value      = end.numero      || '';
-        document.getElementById('e-complemento').value = end.complemento || '';
-        document.getElementById('e-bairro').value      = end.bairro      || '';
-        document.getElementById('e-cidade').value      = end.cidade      || '';
-        document.getElementById('e-estado').value      = end.estado      || '';
-        document.getElementById('e-cep').value         = end.cep         || '';
+        document.getElementById('e-logradouro').value   = h.enderecoLogradouro || '';
+        document.getElementById('e-numero').value       = h.enderecoNumero    || '';
+        document.getElementById('e-bairro').value       = h.enderecoBairro    || '';
+        document.getElementById('e-cidade').value       = h.enderecoCidade    || '';
+        document.getElementById('e-estado').value       = h.enderecoEstado    || '';
+        document.getElementById('e-cep').value          = h.enderecoCep       || '';
+
+        // Se já foi consultado antes, mostrar o painel CNES
+        if (h.cnesDados) {
+          _cnesDados = h.cnesDados;
+          renderCnesPanel(h.cnesDados, h.cnesUltimaConsulta);
+        }
 
         document.getElementById('loading-perfil').style.display = 'none';
         document.getElementById('perfil-content').style.display = 'block';
       } catch (err) {
-        document.getElementById('loading-perfil').innerHTML = `<div style="color:var(--text-secondary)">Erro ao carregar perfil. <button class="btn btn-ghost btn-sm" onclick="loadPerfil()">Tentar novamente</button></div>`;
+        document.getElementById('loading-perfil').innerHTML =
+          `<div style="color:var(--text-secondary)">Erro ao carregar perfil. <button class="btn btn-ghost btn-sm" onclick="loadPerfil()">Tentar novamente</button></div>`;
       }
+    }
+
+    async function buscarCNES() {
+      const cnpj = document.getElementById('p-cnpj').value.replace(/\D/g, '');
+      if (!cnpj || cnpj.length !== 14) { toast.warning('CNPJ inválido'); return; }
+
+      const btn = document.getElementById('btn-buscar-cnes');
+      btn.disabled = true;
+      btn.textContent = '⏳ Consultando...';
+
+      try {
+        const dados = await api.get(`/hospitais/cnes/consultar?cnpj=${cnpj}`);
+        _cnesDados = dados;
+        renderCnesPanel(dados, new Date().toISOString());
+        toast.success('Dados encontrados! Clique em "Aplicar" para preencher os campos.');
+      } catch (err) {
+        toast.error(err.message || 'CNPJ não encontrado no CNES/Receita Federal');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Buscar dados no CNES';
+      }
+    }
+
+    function renderCnesPanel(dados, ultimaConsulta) {
+      if (!dados) return;
+      document.getElementById('cnes-panel').style.display = 'block';
+
+      document.getElementById('cnes-codigo').textContent = dados.codigoCNES || '—';
+      document.getElementById('cnes-tipo').textContent   = dados.tipoEstabelecimento || '—';
+
+      if (dados.leitos) {
+        document.getElementById('cnes-leitos-total').textContent = dados.leitos.total || '0';
+        document.getElementById('cnes-leitos-sus').textContent   = dados.leitos.sus   || '0';
+
+        if (dados.leitos.detalhes?.length) {
+          const sec = document.getElementById('cnes-leitos-section');
+          sec.style.display = 'block';
+          document.getElementById('cnes-leitos-tbody').innerHTML = dados.leitos.detalhes.map(l =>
+            `<tr>
+              <td>${l.tipo}</td>
+              <td><strong>${l.existentes}</strong></td>
+              <td>${l.sus}</td>
+              <td>${l.naoSus}</td>
+            </tr>`
+          ).join('');
+        }
+      } else {
+        document.getElementById('cnes-leitos-total').textContent = 'N/D';
+        document.getElementById('cnes-leitos-sus').textContent   = 'N/D';
+      }
+
+      if (dados.equipamentos?.length) {
+        const sec = document.getElementById('cnes-equipamentos-section');
+        sec.style.display = 'block';
+        document.getElementById('cnes-equip-tbody').innerHTML = dados.equipamentos.map(e =>
+          `<tr>
+            <td>${e.nome}</td>
+            <td><strong>${e.quantidade}</strong></td>
+            <td>${e.emUso}</td>
+          </tr>`
+        ).join('');
+      }
+
+      if (ultimaConsulta) {
+        document.getElementById('cnes-ultima-consulta').textContent =
+          'Consultado em ' + new Date(ultimaConsulta).toLocaleString('pt-BR');
+      }
+    }
+
+    function aplicarDadosCNES() {
+      if (!_cnesDados) return;
+      const d = _cnesDados;
+
+      if (d.razaoSocial)         document.getElementById('p-razao-social').value  = d.razaoSocial;
+      if (d.nomeFantasia)        document.getElementById('p-nome-fantasia').value = d.nomeFantasia;
+      if (d.codigoCNES)          document.getElementById('p-cnes').value          = d.codigoCNES;
+      if (d.tipoEstabelecimento) document.getElementById('p-tipo').value          = d.tipoEstabelecimento;
+      if (d.telefoneContato)     document.getElementById('p-telefone').value      = d.telefoneContato;
+      if (d.enderecoLogradouro)  document.getElementById('e-logradouro').value    = d.enderecoLogradouro;
+      if (d.enderecoNumero)      document.getElementById('e-numero').value        = d.enderecoNumero;
+      if (d.enderecoBairro)      document.getElementById('e-bairro').value        = d.enderecoBairro;
+      if (d.enderecoCidade)      document.getElementById('e-cidade').value        = d.enderecoCidade;
+      if (d.enderecoEstado)      document.getElementById('e-estado').value        = d.enderecoEstado;
+      if (d.enderecoCep)         document.getElementById('e-cep').value           = d.enderecoCep.replace(/(\d{5})(\d{3})/, '$1-$2');
+
+      toast.success('Campos preenchidos! Revise e salve.');
     }
 
     document.getElementById('btn-salvar-dados').addEventListener('click', async () => {
       const btn = document.getElementById('btn-salvar-dados');
-      btn.classList.add('btn-loading');
-      btn.disabled = true;
+      btn.classList.add('btn-loading'); btn.disabled = true;
       try {
         await api.put('/hospitais/me', {
-          razaoSocial:  document.getElementById('p-razao-social').value.trim(),
-          nomeFantasia: document.getElementById('p-nome-fantasia').value.trim(),
-          cnes:         document.getElementById('p-cnes').value.trim(),
-          telefone:     document.getElementById('p-telefone').value.trim(),
+          razaoSocial:         document.getElementById('p-razao-social').value.trim(),
+          nomeFantasia:        document.getElementById('p-nome-fantasia').value.trim(),
+          codigoCNES:          document.getElementById('p-cnes').value.trim() || undefined,
+          tipoEstabelecimento: document.getElementById('p-tipo').value.trim(),
+          telefoneContato:     document.getElementById('p-telefone').value.trim(),
+          cnesDados:           _cnesDados || undefined,
+          cnesUltimaConsulta:  _cnesDados ? new Date().toISOString() : undefined,
         });
         toast.success('Dados salvos com sucesso!');
-      } catch (err) {
-        toast.error(err.message);
-      } finally {
-        btn.classList.remove('btn-loading');
-        btn.disabled = false;
-      }
+      } catch (err) { toast.error(err.message); }
+      finally { btn.classList.remove('btn-loading'); btn.disabled = false; }
     });
 
     document.getElementById('btn-salvar-endereco').addEventListener('click', async () => {
       const btn = document.getElementById('btn-salvar-endereco');
-      btn.classList.add('btn-loading');
-      btn.disabled = true;
+      btn.classList.add('btn-loading'); btn.disabled = true;
       try {
         await api.put('/hospitais/me', {
-          endereco: {
-            logradouro:  document.getElementById('e-logradouro').value.trim(),
-            numero:      document.getElementById('e-numero').value.trim(),
-            complemento: document.getElementById('e-complemento').value.trim(),
-            bairro:      document.getElementById('e-bairro').value.trim(),
-            cidade:      document.getElementById('e-cidade').value.trim(),
-            estado:      document.getElementById('e-estado').value,
-            cep:         document.getElementById('e-cep').value.trim(),
-          }
+          enderecoLogradouro: document.getElementById('e-logradouro').value.trim(),
+          enderecoNumero:     document.getElementById('e-numero').value.trim(),
+          enderecoBairro:     document.getElementById('e-bairro').value.trim(),
+          enderecoCidade:     document.getElementById('e-cidade').value.trim(),
+          enderecoEstado:     document.getElementById('e-estado').value,
+          enderecoCep:        document.getElementById('e-cep').value.replace(/\D/g,''),
         });
         toast.success('Endereço salvo com sucesso!');
-      } catch (err) {
-        toast.error(err.message);
-      } finally {
-        btn.classList.remove('btn-loading');
-        btn.disabled = false;
-      }
+      } catch (err) { toast.error(err.message); }
+      finally { btn.classList.remove('btn-loading'); btn.disabled = false; }
     });
+
+    function adjustGrid() {
+      const grid = document.querySelector('.perfil-grid');
+      if (!grid) return;
+      grid.style.gridTemplateColumns = window.innerWidth < 900 ? '1fr' : '1fr 1fr';
+    }
+    window.addEventListener('resize', adjustGrid);
+    adjustGrid();
+
+    window.buscarCNES = buscarCNES;
+    window.aplicarDadosCNES = aplicarDadosCNES;
 
     loadPerfil();
   </script>
