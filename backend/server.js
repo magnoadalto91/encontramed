@@ -72,7 +72,11 @@ app.use('/api/admin', adminRoutes);
 // ─── Health Check ─────────────────────────────────────────────────────────────
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', env: process.env.NODE_ENV, ts: new Date().toISOString() });
+  const fs = require('fs');
+  const adminPath = path.join(__dirname, 'public', 'admin');
+  const adminExists = fs.existsSync(adminPath);
+  const files = adminExists ? fs.readdirSync(adminPath) : [];
+  res.json({ status: 'ok', env: process.env.NODE_ENV, ts: new Date().toISOString(), __dirname, adminPath, adminExists, files });
 });
 
 // ─── SPA Fallback for Admin ───────────────────────────────────────────────────
