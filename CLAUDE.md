@@ -1054,3 +1054,113 @@ Sem `NODE_ENV=production`:
 | `Project is incompatible with this version of Expo Go` | SDK do projeto desatualizado em relação ao Expo Go instalado | Atualizar `expo` para o SDK do Expo Go instalado; rodar `npx expo install --fix` para corrigir dependências |
 | `Cannot find module 'react-native-worklets/plugin'` | `react-native-reanimated ~4.x` exige `react-native-worklets` separado, incompatível com Expo Go | Usar `react-native-reanimated ~3.x` para desenvolvimento com Expo Go; v4 só em EAS Build com New Architecture |
 | `ERESOLVE could not resolve` no `npm install` em projetos RN | npm v7+ bloqueia peer deps conflitantes por padrão | Sempre usar `npm install --legacy-peer-deps` em projetos React Native / Expo |
+
+---
+
+## Checklist de produção — EncontraMed
+
+> Tudo que precisa ser configurado/trocado antes de abrir o app para usuários reais.
+> Status: 🔴 Pendente | 🟡 Parcial | ✅ Feito
+
+### 🔴 Obrigatório antes de qualquer usuário real
+
+| Item | O que fazer | Onde configurar |
+|---|---|---|
+| `RESEND_API_KEY` | Criar conta em resend.com, adicionar domínio enviador, gerar API key | Railway → Variables |
+| `EMAIL_FROM` | Endereço verificado no Resend (ex: `noreply@encontramed.com.br`) | Railway → Variables |
+| `JWT_SECRET` | Gerar string aleatória forte: `openssl rand -hex 64` | Railway → Variables |
+| `FRONTEND_URL` | URL do Railway + domínio custom se tiver (separados por vírgula) | Railway → Variables |
+| `CONSULTACRM_KEY` | Criar conta em consultacrm.com.br (100 free/mês; após isso plano pago ~R$29/mês) | Railway → Variables |
+| EAS Project ID | Substituir `"your-eas-project-id"` em `mobile/app.json` pelo ID real do projeto EAS | `mobile/app.json` → `extra.eas.projectId` |
+| `google-services.json` | Gerar no Firebase Console → Project Settings → Android → Download | EAS Secret (FILE_BASE64) + `mobile/app.config.js` |
+| Push Notifications | Registrar projectId do EAS no `mobile/src/screens/...` que chama `getExpoPushTokenAsync` | Substituir `'SEU_PROJECT_ID'` pelo ID real |
+
+### 🟡 Importante para operação
+
+| Item | O que fazer | Onde configurar |
+|---|---|---|
+| Domínio custom | Apontar DNS para Railway (CNAME) | Railway → Settings → Custom Domain |
+| HTTPS certificado | Railway provisiona automaticamente quando domínio custom está configurado | Automático |
+| `NODE_ENV=production` | Confirmar que está setado (ativa CORS restritivo, oculta stack trace) | Railway → Variables (já deve estar) |
+| Validação de CNPJ real | Hoje aceita qualquer 14 dígitos — adicionar validação de dígitos verificadores | `mobile/src/screens/auth/RegisterScreen.jsx` + backend |
+| Moderação de cadastros | Hospitais são verificados manualmente pelo admin (`/admin/hospitais.html` → botão Verificar) | Fluxo operacional |
+| Backup do banco | Neon.tech tem backup automático no plano Launch; Railway Postgres não tem | Migrar para Neon se ainda no Railway Postgres |
+
+### 🔴 Armazenamento de arquivos (crítico)
+
+| Item | Problema atual | Solução |
+|---|---|---|
+| Fotos de perfil / documentos enviados | Salvos em disco local do Railway — **somem a cada redeploy** | Migrar para Cloudflare R2 (zero egress cost) |
+| Configuração R2 | — | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` no Railway |
+
+### 🟡 Validação CRM em escala
+
+| Volume | Solução recomendada | Custo |
+|---|---|---|
+| Até ~100 validações/mês | `consultacrm.com.br` plano free (já configurado) | Grátis |
+| 100–5.000/mês | `consultacrm.com.br` plano pago ou `consultar.io` (~R$0,20/query) | ~R$29–R$100/mês |
+| 5.000+/mês ou SLA garantido | Web Service SOAP oficial da CFM (R$772/ano CNPJ privado) | R$772/ano |
+
+**Comportamento atual sem `CONSULTACRM_KEY`:** o endpoint `/api/crm/validar` retorna 503. A validação no cadastro mobile falha com mensagem amigável — o médico pode cadastrar sem validar e vincular depois no perfil web.
+
+### 🟡 Mobile — build de produção
+
+```bash
+# Build Android (APK / AAB para Play Store)
+cd mobile
+eas build --platform android --profile production
+
+# Build iOS
+eas build --platform ios --profile production
+
+# Submit para stores
+eas submit --platform android
+eas submit --platform ios
+```
+
+Pré-requisitos:
+- `eas.json` configurado com perfis `development`, `preview`, `production`
+- `google-services.json` configurado como EAS Secret
+- Conta Apple Developer (iOS) — U$99/ano
+- Conta Google Play (Android) — U$25 único
+
+### 🟡 Variáveis de ambiente — lista completa Railway
+
+```env
+# Obrigatórias
+NODE_ENV=production
+DATABASE_URL=postgresql://...?sslmode=require
+JWT_SECRET=<64-chars-hex>
+FRONTEND_URL=https://encontramed-production.up.railway.app,https://encontramed.com.br
+
+# Email
+RESEND_API_KEY=re_...
+EMAIL_FROM=noreply@encontramed.com.br
+
+# Validação CRM
+CONSULTACRM_KEY=<chave-consultacrm>
+
+# Storage (quando migrar do disco local)
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=encontramed
+R2_PUBLIC_URL=https://pub-xxx.r2.dev
+
+# Opcional — notificações push server-side via Expo
+EXPO_ACCESS_TOKEN=
+```
+
+### ✅ Já funcionando em produção
+
+- Auth JWT com controle de sessão simultânea
+- Rate limiting em todas as rotas de auth
+- Helmet (security headers)
+- CORS restritivo por origem
+- bcrypt 10 rounds
+- Error middleware sem stack trace em produção
+- Lazy instantiation de serviços externos (Resend, etc.)
+- Auto-verificação de email quando RESEND não configurado
+- Recovery automático de perfil médico/hospital no login
+- Portais web `/admin`, `/medico`, `/hospital` servidos pelo mesmo backend
+- Validação de CRM com cache 30 dias e sync de especialidades
