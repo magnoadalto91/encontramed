@@ -158,8 +158,43 @@
       } catch (err) { toast.error(err.message); }
     }
 
+    function verPerfilMedico(c) {
+      const m = c.medico || {};
+      const cfm = m.crmDadosCfm || null;
+      const crmStatusLabel = { ATIVO:'✅ Ativo', SUSPENSO:'⚠️ Suspenso', CANCELADO:'❌ Cancelado', INATIVO:'⛔ Inativo', NAO_VERIFICADO:'🔘 Não verificado' };
+      const esps = cfm?.especialidades || m.especialidades || [];
+      const espHtml = esps.length
+        ? esps.map(e => `<li><strong>${e.nome || e}</strong>${e.rqe ? ` — RQE: ${e.rqe}` : ''}</li>`).join('')
+        : '<li style="color:var(--color-text-muted)">Nenhuma especialidade registrada no CFM</li>';
+
+      const body = document.createElement('div');
+      body.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="avatar" style="width:48px;height:48px;font-size:20px;">${(m.nomeCompleto || '?').charAt(0).toUpperCase()}</div>
+            <div>
+              <div style="font-weight:700;font-size:16px;color:var(--color-text);">${m.nomeCompleto || '—'}</div>
+              ${cfm?.nome && cfm.nome !== m.nomeCompleto ? `<div style="color:var(--color-text-muted);font-size:13px;">CFM: ${cfm.nome}</div>` : ''}
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+            <div><span style="color:var(--color-text-muted);">CRM</span><br><strong>${m.crm || '—'}${m.crmUf ? '/' + m.crmUf : ''}</strong></div>
+            <div><span style="color:var(--color-text-muted);">Status CFM</span><br><strong>${crmStatusLabel[m.crmStatus || 'NAO_VERIFICADO']}</strong></div>
+            ${m.crmUltimaVerif ? `<div style="grid-column:1/-1;"><span style="color:var(--color-text-muted);">Última verificação</span><br><strong>${new Date(m.crmUltimaVerif).toLocaleDateString('pt-BR')}</strong></div>` : ''}
+          </div>
+          <div>
+            <div style="color:var(--color-text-muted);font-size:13px;margin-bottom:6px;">Especialidades (CFM)</div>
+            <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:13px;">${espHtml}</ul>
+          </div>
+          ${m.valorHoraBase ? `<div><span style="color:var(--color-text-muted);font-size:13px;">Valor/hora pretendido</span><br><strong>${Number(m.valorHoraBase).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong></div>` : ''}
+        </div>
+      `;
+      showModal({ title: 'Perfil do Médico', body, confirmText: 'Fechar', hideCancel: true, type: 'default' });
+    }
+
     window.aceitarCandidatura = aceitarCandidatura;
     window.rejeitarCandidatura = rejeitarCandidatura;
+    window.verPerfilMedico = verPerfilMedico;
 
     async function loadCandidaturas(page = 1) {
       const tbody = document.getElementById('candidaturas-tbody');
@@ -184,30 +219,48 @@
           return;
         }
 
-        tbody.innerHTML = items.map(c => `
-          <tr>
+        tbody.innerHTML = items.map(c => {
+          const m = c.medico || {};
+          const cfm = m.crmDadosCfm || null;
+          const crmStatusMap = { ATIVO:'badge-success', SUSPENSO:'badge-warning', CANCELADO:'badge-danger', INATIVO:'badge-secondary', NAO_VERIFICADO:'badge-secondary' };
+          const crmStatus = m.crmStatus || 'NAO_VERIFICADO';
+          const crmBadge = `<span class="badge ${crmStatusMap[crmStatus]}" style="font-size:10px;">${crmStatus === 'ATIVO' ? '✓ Ativo' : crmStatus === 'NAO_VERIFICADO' ? 'Não verif.' : crmStatus}</span>`;
+
+          const esps = cfm?.especialidades || m.especialidades || [];
+          const espHtml = esps.length
+            ? esps.map(e => `<span class="badge badge-info" style="font-size:10px;">${e.nome || e}${e.rqe ? ' RQE' : ''}</span>`).join(' ')
+            : '<span style="color:var(--color-text-muted);font-size:12px;">—</span>';
+
+          return `<tr>
             <td>
               <div style="display:flex;align-items:center;gap:var(--space-2);">
-                <div class="avatar avatar-sm">${(c.medico?.nomeCompleto || c.medicoNome || '?').charAt(0).toUpperCase()}</div>
-                <span>${c.medico?.nomeCompleto || c.medicoNome || '—'}</span>
+                <div class="avatar avatar-sm">${(m.nomeCompleto || '?').charAt(0).toUpperCase()}</div>
+                <div>
+                  <div>${m.nomeCompleto || '—'}</div>
+                  ${cfm ? `<div style="font-size:11px;color:var(--color-text-muted);">${cfm.nome || ''}</div>` : ''}
+                </div>
               </div>
             </td>
-            <td class="td-secondary">${c.medico?.crm || c.crm || '—'}${c.medico?.ufCrm ? '/' + c.medico.ufCrm : ''}</td>
-            <td>${c.plantao?.especialidade?.nome || c.especialidadeNome || '—'}</td>
+            <td>
+              <div>${m.crm || '—'}${m.crmUf ? '/' + m.crmUf : ''}</div>
+              <div style="margin-top:3px;">${crmBadge}</div>
+            </td>
+            <td><div style="display:flex;flex-wrap:wrap;gap:3px;">${espHtml}</div></td>
             <td class="td-secondary">${fmtDate(c.plantao?.dataInicio || c.plantaoData)}</td>
             <td class="td-secondary">${fmtDate(c.createdAt)}</td>
             <td>${fmtMoney(c.valorProposto)}</td>
             <td>${statusBadge(c.status)}</td>
             <td>
               <div class="td-actions">
+                <button class="btn btn-ghost btn-xs" onclick="verPerfilMedico(${JSON.stringify(c).replace(/"/g,'&quot;')})">👤</button>
                 ${c.status === 'PENDENTE' ? `
-                  <button class="btn btn-success btn-xs" onclick="aceitarCandidatura(${c.id})">✅ Aceitar</button>
-                  <button class="btn btn-danger btn-xs" onclick="rejeitarCandidatura(${c.id})">❌ Rejeitar</button>
-                ` : '—'}
+                  <button class="btn btn-success btn-xs" onclick="aceitarCandidatura(${c.id})">✅</button>
+                  <button class="btn btn-danger btn-xs" onclick="rejeitarCandidatura(${c.id})">❌</button>
+                ` : ''}
               </div>
             </td>
-          </tr>
-        `).join('');
+          </tr>`;
+        }).join('');
 
         // Pagination
         const totalPages = Math.ceil(total / PAGE_SIZE);

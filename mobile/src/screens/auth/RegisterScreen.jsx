@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
@@ -25,13 +25,19 @@ function maskCNPJ(v) {
 
 // ⚠️ ALL hooks BEFORE any conditional return
 export default function RegisterScreen({ navigation }) {
-  const [role, setRole] = useState(null); // 'MEDICO' or 'HOSPITAL'
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [crmValidando, setCrmValidando] = useState(false);
+  const [crmValidado, setCrmValidado] = useState(null); // dados da CFM após validação
   const [form, setForm] = useState({ nomeCompleto: '', email: '', senha: '', telefone: '', crm: '', crmUf: '', cnpj: '' });
   const [errors, setErrors] = useState({});
   const showToast = useToast();
 
-  const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+  const update = (key, val) => {
+    setForm(prev => ({ ...prev, [key]: val }));
+    // Reset CRM validation when CRM/UF changes
+    if (key === 'crm' || key === 'crmUf') setCrmValidado(null);
+  };
 
   const validate = () => {
     const e = {};
@@ -49,15 +55,37 @@ export default function RegisterScreen({ navigation }) {
     return Object.keys(e).length === 0;
   };
 
+  const handleValidarCrm = async () => {
+    if (!form.crm.trim() || !form.crmUf.trim()) {
+      setErrors(e => ({ ...e, crm: !form.crm.trim() ? 'Informe o CRM' : e.crm, crmUf: !form.crmUf.trim() ? 'Informe a UF' : e.crmUf }));
+      return;
+    }
+    setCrmValidando(true);
+    setCrmValidado(null);
+    try {
+      const { data } = await api.get(`/crm/validar?crm=${form.crm.replace(/\D/g,'')}&uf=${form.crmUf}`);
+      setCrmValidado(data);
+      // Auto-fill name from CFM if empty
+      if (!form.nomeCompleto.trim() && data.nome) {
+        update('nomeCompleto', data.nome);
+      }
+      showToast(`CRM validado: ${data.situacao === 'ATIVO' ? '✅ Ativo' : '⚠️ ' + data.situacao}`, data.situacao === 'ATIVO' ? 'success' : 'warning');
+    } catch (err) {
+      showToast(err?.message || 'Não foi possível validar o CRM', 'error');
+    } finally {
+      setCrmValidando(false);
+    }
+  };
+
   const handleRegister = async () => {
     if (!validate()) return;
     setLoading(true);
     try {
-      await api.post('/auth/register', { ...form, role });
-      showToast('Conta criada! Verifique seu e-mail para ativar.', 'success', 5000);
+      const res = await api.post('/auth/register', { ...form, role });
+      showToast(res?.data?.message || 'Conta criada! Faça login para continuar.', 'success', 5000);
       navigation.navigate('Login');
     } catch (err) {
-      showToast(err?.response?.data?.error || err?.message || 'Erro ao criar conta', 'error');
+      showToast(err?.message || 'Erro ao criar conta', 'error');
     } finally {
       setLoading(false);
     }
@@ -90,33 +118,61 @@ export default function RegisterScreen({ navigation }) {
               </View>
             )}
 
-            {/* Form - rendered after role selection */}
+            {/* Form */}
             {role && (
               <View style={styles.card}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-                  <TouchableOpacity onPress={() => setRole(null)} style={{ marginRight: 12 }}>
+                  <TouchableOpacity onPress={() => { setRole(null); setCrmValidado(null); }} style={{ marginRight: 12 }}>
                     <Text style={{ color: COLORS.accent, fontSize: 14 }}>← Voltar</Text>
                   </TouchableOpacity>
                   <Text style={styles.roleSelected}>{role === 'MEDICO' ? '👨‍⚕️ Médico' : '🏥 Hospital'}</Text>
                 </View>
 
+                {/* CRM first for médicos — pre-fills name from CFM */}
+                {role === 'MEDICO' && (
+                  <>
+                    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-end' }}>
+                      <View style={{ flex: 2 }}>
+                        <Input label="CRM" value={form.crm} onChangeText={v => update('crm', v.replace(/\D/g,''))} placeholder="123456" keyboardType="numeric" error={errors.crm} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Input label="UF" value={form.crmUf} onChangeText={v => update('crmUf', v.toUpperCase())} placeholder="SP" maxLength={2} error={errors.crmUf} autoCapitalize="characters" />
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.validateBtn, crmValidado && { backgroundColor: COLORS.success }]}
+                        onPress={handleValidarCrm}
+                        disabled={crmValidando}
+                      >
+                        {crmValidando
+                          ? <ActivityIndicator size="small" color="#fff" />
+                          : <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{crmValidado ? '✓ OK' : 'Validar'}</Text>
+                        }
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* CFM data preview */}
+                    {crmValidado && (
+                      <View style={styles.cfmCard}>
+                        <Text style={styles.cfmTitle}>✅ Dados da CFM</Text>
+                        {crmValidado.nome && <Text style={styles.cfmRow}><Text style={styles.cfmLabel}>Nome: </Text>{crmValidado.nome}</Text>}
+                        <Text style={styles.cfmRow}><Text style={styles.cfmLabel}>Situação: </Text>
+                          <Text style={{ color: crmValidado.situacao === 'ATIVO' ? COLORS.success : COLORS.warning }}>{crmValidado.situacao}</Text>
+                        </Text>
+                        {crmValidado.especialidades?.length > 0 && (
+                          <Text style={styles.cfmRow}>
+                            <Text style={styles.cfmLabel}>Especialidades: </Text>
+                            {crmValidado.especialidades.map(e => e.nome + (e.rqe ? ` (RQE ${e.rqe})` : '')).join(', ')}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </>
+                )}
+
                 <Input label="Nome completo" value={form.nomeCompleto} onChangeText={v => update('nomeCompleto', v)} placeholder="Dr. João Silva" error={errors.nomeCompleto} />
                 <Input label="E-mail" value={form.email} onChangeText={v => update('email', v)} placeholder="seu@email.com" keyboardType="email-address" error={errors.email} />
                 <Input label="Senha" value={form.senha} onChangeText={v => update('senha', v)} placeholder="Mínimo 8 caracteres" secureTextEntry error={errors.senha} />
                 <Input label="Telefone (opcional)" value={form.telefone} onChangeText={v => update('telefone', maskPhone(v))} placeholder="(11) 99999-9999" keyboardType="phone-pad" />
-
-                {role === 'MEDICO' && (
-                  <>
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                      <View style={{ flex: 2 }}>
-                        <Input label="CRM" value={form.crm} onChangeText={v => update('crm', v)} placeholder="123456" keyboardType="numeric" error={errors.crm} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Input label="UF" value={form.crmUf} onChangeText={v => update('crmUf', v.toUpperCase())} placeholder="SP" maxLength={2} error={errors.crmUf} />
-                      </View>
-                    </View>
-                  </>
-                )}
 
                 {role === 'HOSPITAL' && (
                   <Input label="CNPJ" value={form.cnpj} onChangeText={v => update('cnpj', maskCNPJ(v))} placeholder="00.000.000/0000-00" keyboardType="numeric" error={errors.cnpj} />
@@ -156,4 +212,15 @@ const styles = StyleSheet.create({
   },
   roleSelected: { color: COLORS.accent, fontSize: 16, fontWeight: '600' },
   loginArea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingBottom: 24 },
+  validateBtn: {
+    backgroundColor: COLORS.blue, borderRadius: 8, paddingHorizontal: 12,
+    paddingVertical: 12, marginBottom: 2, alignItems: 'center', justifyContent: 'center',
+  },
+  cfmCard: {
+    backgroundColor: 'rgba(16,185,129,0.08)', borderRadius: 10, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', marginBottom: 16, marginTop: 4,
+  },
+  cfmTitle: { color: COLORS.success, fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  cfmRow: { color: COLORS.textSecondary, fontSize: 13, marginBottom: 4, lineHeight: 18 },
+  cfmLabel: { color: COLORS.textMuted, fontWeight: '600' },
 });

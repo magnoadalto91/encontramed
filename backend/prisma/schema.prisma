@@ -143,6 +143,7 @@ model medicos {
   crmUf                 String?
   crmStatus             CrmStatus @default(NAO_VERIFICADO)
   crmUltimaVerif        DateTime?
+  crmDadosCfm           Json?
   enderecoLogradouro    String?
   enderecoCidade        String?
   enderecoEstado        String?

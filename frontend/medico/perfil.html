@@ -94,25 +94,41 @@
             </form>
           </div>
 
-          <!-- Dados Profissionais -->
+          <!-- Dados Profissionais / CRM -->
           <div class="card">
-            <div class="card-header">
-              <h2 class="card-title">Dados Profissionais</h2>
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+              <h2 class="card-title">CRM &amp; Especialidades</h2>
+              <span id="crm-status-badge"></span>
             </div>
             <div style="display:flex;flex-direction:column;gap:var(--space-4);">
-              <div class="form-group">
-                <label class="form-label" for="crm">CRM</label>
-                <input type="text" id="crm" class="input-field" placeholder="000000" disabled>
-                <span class="form-hint">O CRM é verificado e não pode ser alterado aqui.</span>
+              <div style="display:flex;gap:var(--space-3);">
+                <div class="form-group" style="flex:2;margin:0;">
+                  <label class="form-label" for="crm">Número do CRM</label>
+                  <input type="text" id="crm" class="input-field" placeholder="123456" maxlength="7">
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                  <label class="form-label" for="crm-uf">UF</label>
+                  <input type="text" id="crm-uf" class="input-field" placeholder="SP" maxlength="2" style="text-transform:uppercase;">
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="crm-uf">CRM UF</label>
-                <input type="text" id="crm-uf" class="input-field" placeholder="SP" disabled>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="especialidades">Especialidades</label>
-                <input type="text" id="especialidades" class="input-field" placeholder="Carregando..." disabled>
-                <span class="form-hint">Especialidades registradas no seu perfil.</span>
+              <button class="btn btn-primary btn-sm" id="btn-validar-crm" onclick="validarCrm()">
+                🔍 Validar no CFM
+              </button>
+
+              <!-- CFM data panel — shown after validation -->
+              <div id="cfm-panel" style="display:none; background:rgba(38,208,206,0.06); border:1px solid rgba(38,208,206,0.2); border-radius:10px; padding:16px; margin-top:4px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                  <span style="font-size:16px;">🏥</span>
+                  <strong style="color:var(--color-primary);font-size:14px;">Dados do CFM</strong>
+                  <small id="cfm-ultima-verif" style="color:var(--color-text-muted);margin-left:auto;"></small>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div><span style="color:var(--color-text-muted);font-size:13px;">Nome no CFM:</span><br>
+                    <strong id="cfm-nome" style="color:var(--color-text);font-size:14px;">—</strong></div>
+                  <div><span style="color:var(--color-text-muted);font-size:13px;">Especialidades:</span><br>
+                    <div id="cfm-especialidades" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -187,6 +203,48 @@
       return `<span class="badge ${cls}">${status || 'PENDENTE'}</span>`;
     }
 
+    const CRM_STATUS_BADGE = {
+      ATIVO:          '<span class="badge badge-success">✓ Ativo</span>',
+      INATIVO:        '<span class="badge badge-secondary">Inativo</span>',
+      SUSPENSO:       '<span class="badge badge-warning">Suspenso</span>',
+      CANCELADO:      '<span class="badge badge-danger">Cancelado</span>',
+      NAO_VERIFICADO: '<span class="badge badge-secondary">Não verificado</span>',
+    };
+
+    function renderCfmPanel(dados, ultimaVerif) {
+      const panel = document.getElementById('cfm-panel');
+      if (!dados) { panel.style.display = 'none'; return; }
+      panel.style.display = 'block';
+      document.getElementById('cfm-nome').textContent = dados.nome || '—';
+      if (ultimaVerif) {
+        document.getElementById('cfm-ultima-verif').textContent = 'Verificado em ' + new Date(ultimaVerif).toLocaleDateString('pt-BR');
+      }
+      const esps = dados.especialidades || [];
+      document.getElementById('cfm-especialidades').innerHTML = esps.length
+        ? esps.map(e => `<span class="badge badge-info" style="font-size:12px;">${e.nome}${e.rqe ? ' <small>RQE '+e.rqe+'</small>' : ''}</span>`).join('')
+        : '<span style="color:var(--color-text-muted);font-size:13px;">Nenhuma especialidade registrada</span>';
+    }
+
+    async function validarCrm() {
+      const crm = document.getElementById('crm').value.replace(/\D/g,'');
+      const uf = document.getElementById('crm-uf').value.toUpperCase().trim();
+      if (!crm || !uf) { toast.warning('Informe o CRM e a UF'); return; }
+
+      const btn = document.getElementById('btn-validar-crm');
+      btn.disabled = true; btn.textContent = '⏳ Consultando CFM...';
+
+      try {
+        const dados = await api.post('/crm/vincular', { crm, uf });
+        document.getElementById('crm-status-badge').innerHTML = CRM_STATUS_BADGE[dados.situacao] || CRM_STATUS_BADGE.NAO_VERIFICADO;
+        renderCfmPanel(dados, new Date().toISOString());
+        toast.success('CRM validado com sucesso!');
+      } catch (err) {
+        toast.error(err.message || 'Erro ao validar CRM');
+      } finally {
+        btn.disabled = false; btn.textContent = '🔍 Validar no CFM';
+      }
+    }
+
     async function loadPerfil() {
       try {
         const data = await api.get('/medicos/me');
@@ -198,15 +256,20 @@
         document.getElementById('crm').value = medico.crm || '';
         document.getElementById('crm-uf').value = medico.crmUf || medico.uf || '';
 
-        const especialidades = medico.especialidades || medico.especialidade || [];
-        const espStr = Array.isArray(especialidades)
-          ? especialidades.map(e => e.nome || e).join(', ')
-          : String(especialidades || '—');
-        document.getElementById('especialidades').value = espStr || '—';
+        // Show CRM status badge
+        const status = medico.crmStatus || 'NAO_VERIFICADO';
+        document.getElementById('crm-status-badge').innerHTML = CRM_STATUS_BADGE[status] || CRM_STATUS_BADGE.NAO_VERIFICADO;
+
+        // Show CFM data if already validated
+        if (medico.crmDadosCfm) {
+          renderCfmPanel(medico.crmDadosCfm, medico.crmUltimaVerif);
+        }
       } catch (err) {
         toast.error('Erro ao carregar perfil: ' + err.message);
       }
     }
+
+    window.validarCrm = validarCrm;
 
     async function loadDocumentos() {
       const tbody = document.getElementById('docs-tbody');
