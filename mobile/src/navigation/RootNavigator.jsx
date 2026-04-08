@@ -14,6 +14,7 @@ import HospitalNavigator from './HospitalNavigator';
 // Shared screens (pushed on top of tabs)
 import NotificacoesScreen from '../screens/shared/NotificacoesScreen';
 import SuporteScreen from '../screens/shared/SuporteScreen';
+import ChatScreen from '../screens/shared/ChatScreen';
 
 // Medico stack screens
 import PlantaoDetailScreen from '../screens/medico/PlantaoDetailScreen';
@@ -26,6 +27,7 @@ function MedicoStack() {
     <AppStack.Navigator screenOptions={{ headerShown: false }}>
       <AppStack.Screen name="MedicoTabs" component={MedicoNavigator} />
       <AppStack.Screen name="PlantaoDetail" component={PlantaoDetailScreen} />
+      <AppStack.Screen name="Chat" component={ChatScreen} />
       <AppStack.Screen name="Notificacoes" component={NotificacoesScreen} />
       <AppStack.Screen name="Suporte" component={SuporteScreen} />
     </AppStack.Navigator>
@@ -36,6 +38,7 @@ function HospitalStack() {
   return (
     <AppStack.Navigator screenOptions={{ headerShown: false }}>
       <AppStack.Screen name="HospitalTabs" component={HospitalNavigator} />
+      <AppStack.Screen name="Chat" component={ChatScreen} />
       <AppStack.Screen name="Notificacoes" component={NotificacoesScreen} />
       <AppStack.Screen name="Suporte" component={SuporteScreen} />
     </AppStack.Navigator>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { authStore } from '../../store/authStore';
 import { useToast } from '../../components/ui/Toast';
 import { ConfirmModal } from '../../components/ui/Modal';
@@ -36,13 +37,12 @@ export default function PerfilHospitalScreen({ navigation }) {
     finally { setLoggingOut(false); setShowLogout(false); }
   };
 
-  // Badges de capacidades (só as que forem true)
   const capacidades = [
-    cnes?.possuiCentroCirurgico  && '🔪 Centro Cirúrgico',
-    cnes?.possuiCentroObstetrico && '🤱 Centro Obstétrico',
-    cnes?.possuiAtendimentoHosp  && '🏥 Internação',
-    cnes?.possuiAtendimentoAmb   && '🩺 Ambulatório',
-    cnes?.possuiServApoio        && '🔬 Serv. Apoio',
+    cnes?.possuiCentroCirurgico  && { icon: 'cut-outline',          label: 'Centro Cirúrgico' },
+    cnes?.possuiCentroObstetrico && { icon: 'heart-outline',         label: 'Centro Obstétrico' },
+    cnes?.possuiAtendimentoHosp  && { icon: 'bed-outline',           label: 'Internação' },
+    cnes?.possuiAtendimentoAmb   && { icon: 'medical-outline',       label: 'Ambulatório' },
+    cnes?.possuiServApoio        && { icon: 'flask-outline',         label: 'Serv. Apoio' },
   ].filter(Boolean);
 
   return (
@@ -53,7 +53,7 @@ export default function PerfilHospitalScreen({ navigation }) {
           {/* Avatar */}
           <View style={styles.avatarArea}>
             <View style={styles.avatar}>
-              <Text style={{ fontSize: 36 }}>🏥</Text>
+              <Ionicons name="business" size={36} color={COLORS.accent} />
             </View>
             <Text style={styles.nome}>{hospital?.nomeFantasia || hospital?.razaoSocial || 'Hospital'}</Text>
             <Text style={styles.email}>{user?.email}</Text>
@@ -68,14 +68,14 @@ export default function PerfilHospitalScreen({ navigation }) {
           {hospital && (
             <Card style={styles.card}>
               <Text style={styles.sectionTitle}>Dados do Hospital</Text>
-              {hospital.razaoSocial     && <InfoRow label="Razão Social"  value={hospital.razaoSocial} />}
-              {hospital.cnpj            && <InfoRow label="CNPJ"          value={maskCNPJ(hospital.cnpj)} />}
-              {hospital.codigoCNES      && <InfoRow label="CNES"          value={hospital.codigoCNES} />}
-              {hospital.tipoEstabelecimento && <InfoRow label="Tipo"      value={hospital.tipoEstabelecimento} />}
-              {hospital.telefoneContato && <InfoRow label="Telefone"      value={hospital.telefoneContato} />}
-              {cnes?.emailContato       && <InfoRow label="E-mail"        value={cnes.emailContato} />}
+              {hospital.razaoSocial     && <InfoRow icon="business-outline"     label="Razão Social"  value={hospital.razaoSocial} />}
+              {hospital.cnpj            && <InfoRow icon="card-outline"          label="CNPJ"          value={maskCNPJ(hospital.cnpj)} />}
+              {hospital.codigoCNES      && <InfoRow icon="barcode-outline"       label="CNES"          value={hospital.codigoCNES} />}
+              {hospital.tipoEstabelecimento && <InfoRow icon="layers-outline"    label="Tipo"          value={hospital.tipoEstabelecimento} />}
+              {hospital.telefoneContato && <InfoRow icon="call-outline"          label="Telefone"      value={hospital.telefoneContato} />}
+              {cnes?.emailContato       && <InfoRow icon="mail-outline"          label="E-mail"        value={cnes.emailContato} />}
               {hospital.enderecoCidade  && (
-                <InfoRow label="Localização"
+                <InfoRow icon="location-outline" label="Localização"
                   value={`${hospital.enderecoCidade}${hospital.enderecoEstado ? ' – ' + hospital.enderecoEstado : ''}`}
                 />
               )}
@@ -85,38 +85,36 @@ export default function PerfilHospitalScreen({ navigation }) {
           {/* Dados CNES */}
           {cnes && (
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Dados do CNES / Receita Federal</Text>
+              <Text style={styles.sectionTitle}>Dados CNES / Receita Federal</Text>
 
-              {/* Metadados institucionais */}
-              {(cnes.tipoGestao || cnes.esferaAdministrativa || cnes.nivelHierarquia ||
-                cnes.turnoAtendimento || cnes.naturezaJuridica) && (
+              {(cnes.tipoGestao || cnes.esferaAdministrativa || cnes.nivelHierarquia || cnes.turnoAtendimento || cnes.naturezaJuridica) && (
                 <View style={styles.badgesRow}>
-                  {cnes.tipoGestao          && <InfoBadge label={'🏛 Gestão: ' + cnes.tipoGestao} />}
-                  {cnes.esferaAdministrativa && <InfoBadge label={'📋 ' + cnes.esferaAdministrativa} />}
-                  {cnes.nivelHierarquia      && <InfoBadge label={'🔢 ' + cnes.nivelHierarquia} />}
-                  {cnes.turnoAtendimento     && <InfoBadge label={'🕐 ' + cnes.turnoAtendimento} />}
-                  {cnes.naturezaJuridica     && <InfoBadge label={cnes.naturezaJuridica} />}
+                  {cnes.tipoGestao          && <InfoBadge icon="business-outline"     label={'Gestão: ' + cnes.tipoGestao} />}
+                  {cnes.esferaAdministrativa && <InfoBadge icon="layers-outline"       label={cnes.esferaAdministrativa} />}
+                  {cnes.nivelHierarquia      && <InfoBadge icon="git-branch-outline"   label={cnes.nivelHierarquia} />}
+                  {cnes.turnoAtendimento     && <InfoBadge icon="time-outline"         label={cnes.turnoAtendimento} />}
+                  {cnes.naturezaJuridica     && <InfoBadge icon="document-outline"     label={cnes.naturezaJuridica} />}
                 </View>
               )}
 
-              {/* Capacidades */}
               {capacidades.length > 0 && (
                 <View style={[styles.badgesRow, { marginTop: 8 }]}>
-                  {capacidades.map((c, i) => <InfoBadge key={i} label={c} color={COLORS.accent} />)}
+                  {capacidades.map((c, i) => <InfoBadge key={i} icon={c.icon} label={c.label} color={COLORS.accent} />)}
                 </View>
               )}
 
               {/* Leitos */}
-              <Text style={[styles.subTitle, { marginTop: 16 }]}>🛏 Leitos</Text>
+              <View style={styles.subTitleRow}>
+                <Ionicons name="bed-outline" size={14} color={COLORS.accent} />
+                <Text style={styles.subTitle}>Leitos</Text>
+              </View>
               {cnes.leitos ? (
                 <>
                   <View style={styles.leitosRow}>
-                    <LeitoStat label="Total"      value={cnes.leitos.total} />
-                    <LeitoStat label="SUS"         value={cnes.leitos.sus}         color={COLORS.success} />
-                    <LeitoStat label="Não-SUS"     value={cnes.leitos.naoSus}      color={COLORS.textMuted} />
-                    {cnes.leitos.contratados > 0 && (
-                      <LeitoStat label="Contrat."  value={cnes.leitos.contratados} color={COLORS.accent} />
-                    )}
+                    <LeitoStat label="Total"    value={cnes.leitos.total} />
+                    <LeitoStat label="SUS"      value={cnes.leitos.sus}         color={COLORS.success} />
+                    <LeitoStat label="Não-SUS"  value={cnes.leitos.naoSus}      color={COLORS.textMuted} />
+                    {cnes.leitos.contratados > 0 && <LeitoStat label="Contrat." value={cnes.leitos.contratados} color={COLORS.accent} />}
                   </View>
                   {cnes.leitos.detalhes?.length > 0 && (
                     <View style={{ marginTop: 8 }}>
@@ -139,7 +137,10 @@ export default function PerfilHospitalScreen({ navigation }) {
               )}
 
               {/* Equipamentos */}
-              <Text style={[styles.subTitle, { marginTop: 16 }]}>🔬 Equipamentos</Text>
+              <View style={styles.subTitleRow}>
+                <Ionicons name="hardware-chip-outline" size={14} color={COLORS.accent} />
+                <Text style={styles.subTitle}>Equipamentos</Text>
+              </View>
               {cnes.equipamentos?.length > 0 ? (
                 <>
                   {cnes.equipamentos.slice(0, 10).map((e, i) => (
@@ -162,7 +163,10 @@ export default function PerfilHospitalScreen({ navigation }) {
               )}
 
               {/* Serviços */}
-              <Text style={[styles.subTitle, { marginTop: 16 }]}>🏥 Serviços</Text>
+              <View style={styles.subTitleRow}>
+                <Ionicons name="medical-outline" size={14} color={COLORS.accent} />
+                <Text style={styles.subTitle}>Serviços</Text>
+              </View>
               {cnes.servicos?.length > 0 ? (
                 <View style={[styles.badgesRow, { marginTop: 4 }]}>
                   {cnes.servicos.slice(0, 12).map((s, i) => (
@@ -187,8 +191,8 @@ export default function PerfilHospitalScreen({ navigation }) {
           {/* Menu */}
           <Card style={styles.card}>
             <Text style={styles.sectionTitle}>Conta</Text>
-            <MenuItem icon="🔔" label="Notificações" onPress={() => navigation.navigate('Notificacoes')} />
-            <MenuItem icon="🆘" label="Suporte"       onPress={() => navigation.navigate('Suporte')} />
+            <MenuItem icon="notifications-outline" label="Notificações" onPress={() => navigation.navigate('Notificacoes')} />
+            <MenuItem icon="headset-outline"        label="Suporte"       onPress={() => navigation.navigate('Suporte')} />
           </Card>
 
           <Button title="Sair da conta" variant="danger" onPress={() => setShowLogout(true)} style={{ marginTop: 8 }} />
@@ -208,18 +212,22 @@ export default function PerfilHospitalScreen({ navigation }) {
   );
 }
 
-function InfoRow({ label, value }) {
+function InfoRow({ icon, label, value }) {
   return (
     <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+        <Ionicons name={icon} size={13} color={COLORS.textMuted} />
+        <Text style={styles.infoLabel}>{label}</Text>
+      </View>
       <Text style={styles.infoValue} numberOfLines={2}>{value}</Text>
     </View>
   );
 }
 
-function InfoBadge({ label, color }) {
+function InfoBadge({ icon, label, color }) {
   return (
     <View style={[styles.infoBadge, color && { borderColor: color + '40', backgroundColor: color + '15' }]}>
+      {icon && <Ionicons name={icon} size={11} color={color || COLORS.textSecondary} style={{ marginRight: 4 }} />}
       <Text style={[styles.infoBadgeText, color && { color }]} numberOfLines={1}>{label}</Text>
     </View>
   );
@@ -237,9 +245,9 @@ function LeitoStat({ label, value, color }) {
 function MenuItem({ icon, label, onPress }) {
   return (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
-      <Text style={styles.menuIcon}>{icon}</Text>
+      <Ionicons name={icon} size={20} color={COLORS.textMuted} style={styles.menuIcon} />
       <Text style={styles.menuLabel}>{label}</Text>
-      <Text style={{ color: COLORS.textMuted }}>›</Text>
+      <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
     </TouchableOpacity>
   );
 }
@@ -257,12 +265,14 @@ const styles = StyleSheet.create({
   email: { color: COLORS.textMuted, fontSize: 14, marginBottom: 10 },
   card: { marginBottom: 14 },
   sectionTitle: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14 },
-  subTitle: { color: COLORS.accent, fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  subTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16, marginBottom: 8 },
+  subTitle: { color: COLORS.accent, fontSize: 13, fontWeight: '700' },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  infoLabel: { color: COLORS.textMuted, fontSize: 13, flex: 1 },
+  infoLabel: { color: COLORS.textMuted, fontSize: 13 },
   infoValue: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1.5, textAlign: 'right' },
   badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   infoBadge: {
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(38,208,206,0.08)', borderRadius: 6,
     paddingHorizontal: 8, paddingVertical: 4,
     borderWidth: 1, borderColor: 'rgba(38,208,206,0.2)',
@@ -277,6 +287,6 @@ const styles = StyleSheet.create({
   leitoQtd: { color: '#fff', fontSize: 13, fontWeight: '600' },
   emptyText: { color: COLORS.textMuted, fontSize: 13, fontStyle: 'italic', paddingVertical: 6 },
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  menuIcon: { fontSize: 18, marginRight: 12, width: 24 },
+  menuIcon: { marginRight: 12 },
   menuLabel: { flex: 1, color: '#fff', fontSize: 15 },
 });

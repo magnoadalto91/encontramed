@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { authStore } from '../../store/authStore';
 import { notificacaoStore } from '../../store/notificacaoStore';
 import { plantaoService } from '../../services/plantao.service';
@@ -64,11 +65,11 @@ export default function HomeScreen({ navigation }) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Olá, {user?.nome?.split(' ')[0]} 👋</Text>
+            <Text style={styles.greeting}>Olá, {user?.nomeCompleto?.split(' ')[0] || 'Médico'}</Text>
             <Text style={styles.subtitle}>Plantões disponíveis</Text>
           </View>
           <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Notificacoes')}>
-            <Text style={{ fontSize: 22 }}>🔔</Text>
+            <Ionicons name={countNotif > 0 ? 'notifications' : 'notifications-outline'} size={24} color={countNotif > 0 ? COLORS.accent : '#fff'} />
             {countNotif > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{countNotif > 9 ? '9+' : countNotif}</Text>
@@ -105,7 +106,7 @@ export default function HomeScreen({ navigation }) {
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={{ fontSize: 48 }}>🏥</Text>
+              <Ionicons name="search-outline" size={48} color={COLORS.textMuted} />
               <Text style={styles.emptyText}>Nenhum plantão disponível no raio de {raio} km</Text>
               <TouchableOpacity onPress={() => setRaio(200)}>
                 <Text style={{ color: COLORS.accent, marginTop: 8 }}>Ampliar busca</Text>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { plantaoService } from '../../services/plantao.service';
 import { candidaturaService } from '../../services/candidatura.service';
 import { useToast } from '../../components/ui/Toast';
@@ -39,11 +40,15 @@ export default function PlantaoDetailScreen({ route, navigation }) {
     setCandidatando(true);
     try {
       await candidaturaService.candidatar(id, {});
-      showToast('Candidatura enviada com sucesso!', 'success');
-      navigation.goBack();
+      showToast('Candidatura enviada!', 'success');
+      // Open chat after applying
+      navigation.replace('Chat', {
+        plantaoId: id,
+        titulo: plantao.titulo,
+        hospitalNome: plantao.hospital?.nomeFantasia || plantao.hospital?.razaoSocial,
+      });
     } catch (err) {
       showToast(err?.response?.data?.error || 'Erro ao candidatar', 'error');
-    } finally {
       setCandidatando(false);
     }
   };
@@ -55,83 +60,123 @@ export default function PlantaoDetailScreen({ route, navigation }) {
     try {
       await candidaturaService.criarBid(id, valor);
       showToast('Proposta enviada!', 'success');
-      navigation.goBack();
+      navigation.replace('Chat', {
+        plantaoId: id,
+        titulo: plantao.titulo,
+        hospitalNome: plantao.hospital?.nomeFantasia || plantao.hospital?.razaoSocial,
+      });
     } catch (err) {
       showToast(err?.response?.data?.error || 'Erro ao enviar proposta', 'error');
-    } finally {
       setCandidatando(false);
     }
   };
+
+  const openChat = () => navigation.navigate('Chat', {
+    plantaoId: id,
+    titulo: plantao.titulo,
+    hospitalNome: plantao.hospital?.nomeFantasia || plantao.hospital?.razaoSocial,
+  });
 
   if (loading) return <LoadingScreen />;
   if (!plantao) return null;
 
   const duracao = Math.round((new Date(plantao.dataFim) - new Date(plantao.dataInicio)) / 3600000);
+  const isPorHora = plantao.tipoValor === 'POR_HORA';
 
   return (
     <LinearGradient colors={['#0A1628', '#0D1B2E']} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Button title="← Voltar" variant="ghost" onPress={() => navigation.goBack()} size="sm" style={{ alignSelf: 'flex-start', marginBottom: 16 }} />
 
-          {/* Header */}
+          {/* Top bar */}
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={openChat} style={styles.chatBtn}>
+              <Ionicons name="chatbubble-outline" size={20} color={COLORS.accent} />
+              <Text style={styles.chatBtnText}>Chat</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Header card */}
           <View style={styles.headerCard}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
               <Text style={styles.titulo}>{plantao.titulo}</Text>
               <StatusBadge status={plantao.status} />
             </View>
             <Text style={styles.especialidade}>{plantao.especialidade?.nome || 'Geral'}</Text>
-            <Text style={styles.valor}>{formatCurrency(plantao.valor)}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+              <Text style={styles.valor}>{formatCurrency(plantao.valorBase)}</Text>
+              {isPorHora && <Text style={styles.valorUnit}>/h</Text>}
+            </View>
+            {isPorHora && (
+              <Text style={styles.totalEstimado}>
+                Total estimado: {formatCurrency(parseFloat(plantao.valorBase) * duracao)}
+              </Text>
+            )}
           </View>
 
           {/* Details */}
           <View style={styles.card}>
-            <Row icon="📅" label="Data" value={formatDate(plantao.dataInicio)} />
-            <Row icon="⏰" label="Horário" value={`${formatTime(plantao.dataInicio)} – ${formatTime(plantao.dataFim)} (${duracao}h)`} />
-            <Row icon="📍" label="Local" value={`${plantao.localNome}, ${plantao.localCidade} – ${plantao.localUf}`} />
-            {plantao.exigeRQE && <Row icon="📋" label="Exige RQE" value="Sim" highlight />}
-            {plantao.permiteBid && <Row icon="💰" label="Aceita propostas" value={`Mín. ${formatCurrency(plantao.valorMinimoBid)}`} />}
-            {plantao.prazoConfirmacao && <Row icon="⏳" label="Prazo confirmar" value={formatDate(plantao.prazoConfirmacao)} />}
+            <Row icon="calendar-outline" label="Data" value={formatDate(plantao.dataInicio)} />
+            <Row icon="time-outline" label="Horário" value={`${formatTime(plantao.dataInicio)} – ${formatTime(plantao.dataFim)} (${duracao}h)`} />
+            <Row icon="location-outline" label="Local" value={`${plantao.localNome}, ${plantao.localCidade} – ${plantao.localUf}`} />
+            {plantao.exigeRQE && <Row icon="ribbon-outline" label="Exige RQE" value="Sim" highlight />}
+            {plantao.permiteBid && <Row icon="trending-up-outline" label="Aceita propostas" value={`Mín. ${formatCurrency(plantao.valorMinimoBid)}`} />}
           </View>
 
           {/* Description */}
-          {plantao.descricao && (
+          {plantao.descricao ? (
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Descrição</Text>
               <Text style={styles.descText}>{plantao.descricao}</Text>
             </View>
-          )}
+          ) : null}
 
           {/* Hospital */}
-          {plantao.hospital && (
+          {plantao.hospital ? (
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Hospital</Text>
-              <Text style={styles.hospitalNome}>{plantao.hospital.nomeFantasia || plantao.hospital.razaoSocial}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={styles.hospitalIcon}>
+                  <Ionicons name="business-outline" size={18} color={COLORS.accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.hospitalNome}>{plantao.hospital.nomeFantasia || plantao.hospital.razaoSocial}</Text>
+                  {plantao.hospital.enderecoCidade && (
+                    <Text style={styles.hospitalCidade}>{plantao.hospital.enderecoCidade}{plantao.hospital.enderecoEstado ? ` – ${plantao.hospital.enderecoEstado}` : ''}</Text>
+                  )}
+                </View>
+              </View>
             </View>
-          )}
+          ) : null}
 
           {/* Actions */}
           {plantao.status === 'ABERTO' && (
             <View style={styles.actions}>
               {plantao.permiteBid ? (
                 <>
-                  <Button title="Candidatar (valor fixo)" onPress={handleCandidatar} loading={candidatando} />
+                  <Button title="Candidatar-me (valor fixo)" onPress={handleCandidatar} loading={candidatando} />
                   <Button
-                    title={showBid ? 'Cancelar proposta' : 'Fazer proposta de valor'}
+                    title={showBid ? 'Cancelar proposta' : 'Fazer contraproposta de valor'}
                     variant="secondary"
                     onPress={() => setShowBid(!showBid)}
                     style={{ marginTop: 8 }}
                   />
                   {showBid && (
-                    <View style={{ marginTop: 12 }}>
-                      <Text style={styles.bidLabel}>Sua proposta (R$)</Text>
+                    <View style={styles.bidBox}>
+                      <Text style={styles.bidLabel}>Sua proposta (R${isPorHora ? '/h' : ''})</Text>
                       <View style={styles.bidRow}>
-                        <Text style={styles.bidPrefix}>R$ </Text>
-                        <Text
+                        <TextInput
                           style={styles.bidInput}
-                          onPress={() => {}}
-                        >{bid || '0,00'}</Text>
-                        <Button title="Enviar" onPress={handleBid} loading={candidatando} size="sm" style={{ marginLeft: 8 }} />
+                          value={bid}
+                          onChangeText={setBid}
+                          placeholder="0,00"
+                          placeholderTextColor={COLORS.textMuted}
+                          keyboardType="decimal-pad"
+                        />
+                        <Button title="Enviar proposta" onPress={handleBid} loading={candidatando} size="sm" style={{ marginLeft: 10 }} />
                       </View>
                     </View>
                   )}
@@ -139,8 +184,17 @@ export default function PlantaoDetailScreen({ route, navigation }) {
               ) : (
                 <Button title="Candidatar-me" onPress={handleCandidatar} loading={candidatando} />
               )}
+              <Button title="Abrir chat com hospital" variant="ghost" onPress={openChat} style={{ marginTop: 10 }} />
             </View>
           )}
+
+          {/* Chat button for confirmed */}
+          {['CONFIRMADO', 'REALIZADO'].includes(plantao.status) && (
+            <View style={styles.actions}>
+              <Button title="Abrir chat" onPress={openChat} />
+            </View>
+          )}
+
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -150,7 +204,7 @@ export default function PlantaoDetailScreen({ route, navigation }) {
 function Row({ icon, label, value, highlight }) {
   return (
     <View style={styles.row}>
-      <Text style={styles.rowIcon}>{icon}</Text>
+      <Ionicons name={icon} size={16} color={highlight ? COLORS.accent : COLORS.textMuted} style={styles.rowIcon} />
       <View style={{ flex: 1 }}>
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={[styles.rowValue, highlight && { color: COLORS.accent }]}>{value}</Text>
@@ -161,21 +215,39 @@ function Row({ icon, label, value, highlight }) {
 
 const styles = StyleSheet.create({
   scroll: { padding: 20 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  backBtn: { padding: 4 },
+  chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: COLORS.accent },
+  chatBtnText: { color: COLORS.accent, fontSize: 13, fontWeight: '600' },
+
   headerCard: { backgroundColor: '#112240', borderRadius: 14, padding: 20, borderWidth: 1, borderColor: COLORS.border, marginBottom: 12 },
   titulo: { color: '#fff', fontSize: 18, fontWeight: '800', flex: 1, marginRight: 8 },
   especialidade: { color: COLORS.accent, fontSize: 13, fontWeight: '600', marginBottom: 8 },
   valor: { color: COLORS.accent, fontSize: 28, fontWeight: '800' },
+  valorUnit: { color: COLORS.textMuted, fontSize: 16 },
+  totalEstimado: { color: COLORS.textMuted, fontSize: 13, marginTop: 4 },
+
   card: { backgroundColor: '#112240', borderRadius: 14, padding: 20, borderWidth: 1, borderColor: COLORS.border, marginBottom: 12 },
   row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
-  rowIcon: { fontSize: 16, marginRight: 10, marginTop: 2, width: 20 },
+  rowIcon: { marginRight: 10, marginTop: 2, width: 20 },
   rowLabel: { color: COLORS.textMuted, fontSize: 11, fontWeight: '500', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   rowValue: { color: COLORS.textSecondary, fontSize: 14 },
+
   sectionTitle: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   descText: { color: COLORS.textSecondary, fontSize: 14, lineHeight: 22 },
+
+  hospitalIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(38,208,206,0.15)', justifyContent: 'center', alignItems: 'center' },
   hospitalNome: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  hospitalCidade: { color: COLORS.textMuted, fontSize: 13, marginTop: 2 },
+
   actions: { marginTop: 8, marginBottom: 24 },
-  bidLabel: { color: COLORS.textMuted, fontSize: 12, marginBottom: 6 },
+  bidBox: { marginTop: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 14 },
+  bidLabel: { color: COLORS.textMuted, fontSize: 12, marginBottom: 8, fontWeight: '500' },
   bidRow: { flexDirection: 'row', alignItems: 'center' },
-  bidPrefix: { color: COLORS.textMuted, fontSize: 16 },
-  bidInput: { color: '#fff', fontSize: 18, fontWeight: '700', flex: 1, borderBottomWidth: 1, borderBottomColor: COLORS.accent, paddingBottom: 4 },
+  bidInput: {
+    flex: 1, color: '#fff', fontSize: 18, fontWeight: '700',
+    backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
 });

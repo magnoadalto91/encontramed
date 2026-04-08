@@ -115,6 +115,7 @@ model usuarios {
   chamadosAbertos          chamados[]            @relation("UsuarioChamados")
   chamadosAtribuidos       chamados[]            @relation("SuporteChamados")
   mensagensChamado         chamado_mensagens[]
+  mensagensPlantao         mensagens_plantao[]
   avaliacoesDadas          avaliacoes[]          @relation("AvaliadorAvaliacoes")
   documentosRevisados      documentos[]          @relation("RevisorDocumentos")
 }
@@ -270,6 +271,7 @@ model plantoes {
   exigeRQE          Boolean        @default(false)
   observacoes       String?
   descricao         String?
+  tipoValor         String         @default("FIXO")
   urgente           Boolean        @default(false)
   notificadoRaio    Int            @default(0)
   criadoEm          DateTime       @default(now())
@@ -288,6 +290,7 @@ model plantoes {
   contrato          contratos?
   transacao         transacoes?
   avaliacao         avaliacoes?
+  mensagens         mensagens_plantao[]
 }
 
 model candidaturas {
@@ -499,6 +502,17 @@ model chamado_mensagens {
 
   chamado   chamados @relation(fields: [chamadoId], references: [id])
   autor     usuarios @relation(fields: [autorId], references: [id])
+}
+
+model mensagens_plantao {
+  id          Int      @id @default(autoincrement())
+  plantaoId   Int
+  autorId     Int
+  texto       String
+  criadoEm    DateTime @default(now())
+
+  plantao     plantoes @relation(fields: [plantaoId], references: [id])
+  autor       usuarios @relation(fields: [autorId], references: [id])
 }
 
 model configuracoes {

@@ -8,8 +8,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const SRC_DIR = path.join(__dirname, '..', 'frontend', 'admin');
-const DST_DIR = path.join(__dirname, '..', 'backend', 'public', 'admin');
+const PORTALS = [
+  { src: path.join(__dirname, '..', 'frontend', 'admin'),    dst: path.join(__dirname, '..', 'backend', 'public', 'admin') },
+  { src: path.join(__dirname, '..', 'frontend', 'hospital'), dst: path.join(__dirname, '..', 'backend', 'public', 'hospital') },
+];
+
+// Backwards compat: keep single-portal vars for the main block below
+const SRC_DIR = PORTALS[0].src;
+const DST_DIR = PORTALS[0].dst;
 
 // Try to load obfuscator — optional dependency
 let JavaScriptObfuscator;
@@ -81,21 +87,24 @@ function processHTML(srcPath, dstPath) {
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 console.log('[build] EncontraMed frontend build starting...');
-console.log(`[build] Source: ${SRC_DIR}`);
-console.log(`[build] Destination: ${DST_DIR}`);
 
-if (!fs.existsSync(SRC_DIR)) {
-  console.error(`[build] ERROR: Source directory not found: ${SRC_DIR}`);
-  process.exit(1);
+for (const portal of PORTALS) {
+  console.log(`[build] Processing: ${path.basename(portal.src)}`);
+  console.log(`[build]   Source: ${portal.src}`);
+  console.log(`[build]   Dest:   ${portal.dst}`);
+
+  if (!fs.existsSync(portal.src)) {
+    console.warn(`[build] SKIP: Source not found: ${portal.src}`);
+    continue;
+  }
+
+  if (fs.existsSync(portal.dst)) {
+    fs.rmSync(portal.dst, { recursive: true });
+  }
+
+  copyRecursive(portal.src, portal.dst);
+  console.log(`[build] Done: ${path.basename(portal.src)}`);
 }
-
-// Clean destination
-if (fs.existsSync(DST_DIR)) {
-  fs.rmSync(DST_DIR, { recursive: true });
-  console.log('[build] Cleaned destination directory');
-}
-
-copyRecursive(SRC_DIR, DST_DIR);
 
 // Copy logo to public
 const logoSrc = path.join(__dirname, '..', 'Arquivos', 'logo.png');

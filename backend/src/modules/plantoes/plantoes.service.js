@@ -124,7 +124,7 @@ async function criarPlantao(data, userId) {
   const hospital = await prisma.hospitais.findFirst({ where: { usuarioId: userId } });
   if (!hospital) throw Object.assign(new Error('Hospital não encontrado'), { status: 404 });
 
-  const { especialidadeId, dataInicio, dataFim, valorBase, ...rest } = data;
+  const { especialidadeId, dataInicio, dataFim, valorBase, tipoValor, ...rest } = data;
   const esp = await prisma.especialidades.findUnique({ where: { id: Number(especialidadeId) } });
   if (!esp) throw Object.assign(new Error('Especialidade não encontrada'), { status: 404 });
 
@@ -140,6 +140,7 @@ async function criarPlantao(data, userId) {
       dataFim: fim,
       duracaoHoras,
       valorBase: Number(valorBase),
+      tipoValor: tipoValor || 'FIXO',
       latitude: hospital.latitude,
       longitude: hospital.longitude,
       tipo: 'AVULSO',

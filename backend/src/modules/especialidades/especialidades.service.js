@@ -4,7 +4,10 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function listAll() {
-  return prisma.especialidades.findMany({ orderBy: { nome: 'asc' } });
+  return prisma.especialidades.findMany({
+    orderBy: { nome: 'asc' },
+    include: { _count: { select: { plantoes: true } } },
+  });
 }
 
 async function getById(id) {

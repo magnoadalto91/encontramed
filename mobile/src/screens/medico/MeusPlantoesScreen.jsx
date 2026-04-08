@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { plantaoService } from '../../services/plantao.service';
@@ -83,7 +84,7 @@ export default function MeusPlantoesScreen({ navigation }) {
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={{ fontSize: 48 }}>📋</Text>
+              <Ionicons name="calendar-outline" size={48} color={COLORS.textMuted} />
               <Text style={styles.emptyText}>Nenhum plantão encontrado</Text>
             </View>
           }

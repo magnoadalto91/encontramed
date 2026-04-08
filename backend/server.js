@@ -30,6 +30,7 @@ const notificacoesRoutes = require('./src/modules/notificacoes/notificacoes.rout
 const geoRoutes = require('./src/modules/geolocalizacao/geo.routes');
 const adminRoutes = require('./src/modules/admin/admin.routes');
 const crmRoutes = require('./src/modules/crm/crm.routes');
+const chatRoutes = require('./src/modules/chat/chat.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -70,6 +71,7 @@ app.use('/api/notificacoes', notificacoesRoutes);
 app.use('/api/geo', geoRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/crm', crmRoutes);
+app.use('/api/chat', chatRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 

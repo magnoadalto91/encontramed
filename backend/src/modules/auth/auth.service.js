@@ -128,6 +128,30 @@ async function login(email, senha, plataforma, ipAddress, userAgent) {
     ));
   }
 
+  // Fetch role-specific profile to include in response
+  let hospitalProfile = null;
+  let medicoProfile = null;
+
+  if (user.role === 'HOSPITAL') {
+    hospitalProfile = await prisma.hospitais.findFirst({
+      where: { usuarioId: user.id },
+      select: {
+        id: true, cnpj: true, razaoSocial: true, nomeFantasia: true,
+        codigoCNES: true, tipoEstabelecimento: true,
+        enderecoLogradouro: true, enderecoCidade: true, enderecoEstado: true,
+        telefoneContato: true, verificado: true, cnesDados: true, cnesUltimaConsulta: true,
+      },
+    });
+  } else if (user.role === 'MEDICO') {
+    medicoProfile = await prisma.medicos.findFirst({
+      where: { usuarioId: user.id },
+      select: {
+        id: true, crm: true, crmUf: true, crmStatus: true,
+        enderecoCidade: true, enderecoEstado: true, valorHoraBase: true,
+      },
+    });
+  }
+
   return {
     token,
     user: {
@@ -136,6 +160,8 @@ async function login(email, senha, plataforma, ipAddress, userAgent) {
       nomeCompleto: user.nomeCompleto,
       role: user.role,
       onboardingDone: user.onboardingDone,
+      hospital: hospitalProfile,
+      medico: medicoProfile,
     },
   };
 }
