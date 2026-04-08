@@ -620,6 +620,70 @@ function sanitizarLog(log) {
 
 ---
 
+## Deploy Railway — configuração obrigatória para monorepo
+
+Quando o repositório tem subpastas (ex: `backend/`, `mobile/`, `frontend/`), o Railway aponta para a raiz e não encontra o app. Configuração necessária:
+
+| Campo | Valor |
+|---|---|
+| **Root Directory** | `backend` |
+| **Build Command** | `npm run build` → deve ser `prisma generate` no package.json |
+| **Start Command** | `node server.js` |
+
+### package.json do backend — scripts obrigatórios para Railway
+
+```json
+"scripts": {
+  "start": "node server.js",
+  "build": "prisma generate"
+}
+```
+
+**Nunca colocar no `build` um script que referencia path relativo fora do Root Directory** (ex: `node ../scripts/algo.js`) — o Railway muda o working directory para o Root Directory, então `../` não existe.
+
+### Dependências que costumam falhar em produção
+
+Railway usa `npm install --omit=dev` (equivalente a `--production`). Pacotes que parecem "implicitamente disponíveis" no dev mas precisam estar em `dependencies`:
+
+- `dotenv` — frequentemente esquecido por estar no ambiente local
+- `prisma` (o CLI) — deve estar em `devDependencies`, mas `@prisma/client` em `dependencies`
+- Qualquer pacote que o `server.js` ou seus imports requerem diretamente
+
+### Serviços externos — nunca instanciar no top-level do módulo
+
+```javascript
+// ❌ ERRADO — explode no boot se a env var não estiver definida
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// ✅ CORRETO — lazy, não quebra o boot
+function getResend() {
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn('RESEND_API_KEY não configurada — e-mails desabilitados');
+    return null;
+  }
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
+// No uso:
+const resend = getResend();
+if (!resend) return; // silently skip
+```
+
+Aplicar o mesmo padrão para: Stripe, Clicksign, FocusNFE, S3/R2, Firebase Admin, qualquer SDK que exija credencial no construtor.
+
+### Variáveis de ambiente mínimas para o backend subir
+
+```env
+NODE_ENV=production
+DATABASE_URL=postgresql://...?sslmode=require
+JWT_SECRET=<64-chars-hex>
+FRONTEND_URL=https://seu-dominio.up.railway.app
+```
+
+Sem essas 4, o servidor não sobe corretamente. As demais (`RESEND_API_KEY`, `R2_*`, `CLICKSIGN_*`) podem ser adicionadas depois — desde que os módulos usem instanciação lazy.
+
+---
+
 ## Infraestrutura — decisões e trade-offs
 
 ### Por que Neon.tech ao invés do PostgreSQL do Railway
@@ -932,3 +996,7 @@ Sem `NODE_ENV=production`:
 | Timer de estudo diverge entre dispositivos | Timer local não sincroniza | Sincronizar com banco ao concluir cada sessão |
 | `Math.random()` para OTP | Pseudoaleatório — previsível | `crypto.randomInt(100000, 1000000).toString()` |
 | HTML injection em emails | Interpolação direta sem escape | `escapeHtml()` em todos os campos de template HTML |
+| `Railpack could not determine how to build the app` no Railway | Railway aponta para a raiz do repo, mas o backend está em subpasta | Definir **Root Directory = `backend`** nas Settings do serviço Railway |
+| `Cannot find module '../scripts/build-frontend.js'` no Railway | Script de build aponta para path relativo fora do Root Directory | O backend Node.js não precisa de build do frontend; usar `"build": "prisma generate"` no package.json |
+| `Cannot find module 'dotenv'` no Railway | `dotenv` estava ausente de `dependencies` (só funcionava localmente pois estava instalado globalmente) | Adicionar `dotenv` explicitamente em `dependencies` no package.json — em produção Railway usa `--omit=dev` |
+| `Missing API key. Pass it to the constructor new Resend(...)` | `new Resend(process.env.RESEND_API_KEY)` chamado na raiz do módulo — explode no boot se a env var não estiver definida | Instanciar serviços externos de forma lazy (dentro de uma função `getResend()`) e retornar `null` com `logger.warn` se a key não estiver configurada — nunca instanciar no top-level do módulo |
