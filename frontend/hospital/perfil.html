@@ -356,27 +356,15 @@
           document.getElementById('cnes-card-contratados').style.display = '';
           document.getElementById('cnes-leitos-contratados').textContent = dados.leitos.contratados;
         }
-
-        if (dados.leitos.detalhes?.length) {
-          document.getElementById('cnes-leitos-section').style.display = 'block';
-          document.getElementById('cnes-leitos-tbody').innerHTML = dados.leitos.detalhes.map(l =>
-            `<tr>
-              <td>${l.tipo}</td>
-              <td style="text-align:right;"><strong>${l.existentes}</strong></td>
-              <td style="text-align:right;">${l.sus}</td>
-              <td style="text-align:right;">${l.naoSus}</td>
-              <td style="text-align:right;">${l.contratados || 0}</td>
-            </tr>`
-          ).join('');
-        }
       } else {
         document.getElementById('cnes-leitos-total').textContent   = 'N/D';
         document.getElementById('cnes-leitos-sus').textContent     = 'N/D';
         document.getElementById('cnes-leitos-nao-sus').textContent = 'N/D';
       }
 
+      // Equipamentos — sempre mostra a seção
+      document.getElementById('cnes-equipamentos-section').style.display = 'block';
       if (dados.equipamentos?.length) {
-        document.getElementById('cnes-equipamentos-section').style.display = 'block';
         document.getElementById('cnes-equip-tbody').innerHTML = dados.equipamentos.map(e =>
           `<tr>
             <td>${e.nome}</td>
@@ -384,13 +372,37 @@
             <td style="text-align:right;">${e.emUso || 0}</td>
           </tr>`
         ).join('');
+      } else {
+        document.getElementById('cnes-equip-tbody').innerHTML =
+          `<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:12px;">Nenhum equipamento registrado no CNES</td></tr>`;
       }
 
+      // Serviços — sempre mostra a seção
+      document.getElementById('cnes-servicos-section').style.display = 'block';
       if (dados.servicos?.length) {
-        document.getElementById('cnes-servicos-section').style.display = 'block';
         document.getElementById('cnes-servicos-list').innerHTML = dados.servicos.map(s =>
           `<span class="badge badge-info" title="${s.classificacao || ''}">${s.servico}</span>`
         ).join('');
+      } else {
+        document.getElementById('cnes-servicos-list').innerHTML =
+          `<span style="color:var(--text-muted);font-size:13px;">Nenhum serviço registrado no CNES</span>`;
+      }
+
+      // Leitos detalhados — sempre mostra a seção
+      document.getElementById('cnes-leitos-section').style.display = 'block';
+      if (dados.leitos?.detalhes?.length) {
+        document.getElementById('cnes-leitos-tbody').innerHTML = dados.leitos.detalhes.map(l =>
+          `<tr>
+            <td>${l.tipo}</td>
+            <td style="text-align:right;"><strong>${l.existentes}</strong></td>
+            <td style="text-align:right;">${l.sus}</td>
+            <td style="text-align:right;">${l.naoSus}</td>
+            <td style="text-align:right;">${l.contratados || 0}</td>
+          </tr>`
+        ).join('');
+      } else {
+        document.getElementById('cnes-leitos-tbody').innerHTML =
+          `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:12px;">Nenhum leito registrado no CNES</td></tr>`;
       }
 
       // Badges informativos
