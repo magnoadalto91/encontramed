@@ -64,10 +64,17 @@ function EspecialidadeModal({ visible, especialidades, onSelect, onClose }) {
   );
 }
 
+function formatCep(v) {
+  const digits = v.replace(/\D/g, '').slice(0, 8);
+  if (digits.length > 5) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  return digits;
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function CriarPlantaoScreen({ navigation }) {
   const showToast = useToast();
   const [loading, setLoading] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const [especialidades, setEspecialidades] = useState([]);
   const [espSelecionada, setEspSelecionada] = useState(null);
   const [showEspModal, setShowEspModal] = useState(false);
@@ -79,15 +86,36 @@ export default function CriarPlantaoScreen({ navigation }) {
     dataFim: null,     // Date object
     valor: '',
     valorMinimoBid: '',
+    localCep: '',
     localNome: '',
     localCidade: '',
     localUf: '',
-    localCep: '',
     exigeRQE: false,
     permiteBid: false,
     urgente: false,
   });
   const [errors, setErrors] = useState({});
+
+  const buscarCep = async (cep) => {
+    const digits = cep.replace(/\D/g, '');
+    if (digits.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const d = await r.json();
+      if (d.erro) { showToast('CEP não encontrado', 'error'); return; }
+      setForm(prev => ({
+        ...prev,
+        localNome: prev.localNome || d.logradouro || '',
+        localCidade: d.localidade || prev.localCidade,
+        localUf: d.uf || prev.localUf,
+      }));
+    } catch {
+      showToast('Erro ao buscar CEP', 'error');
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
 
   useEffect(() => {
     api.get('/especialidades').then(r => setEspecialidades(r.data)).catch(() => {});
@@ -215,6 +243,30 @@ export default function CriarPlantaoScreen({ navigation }) {
                 <Ionicons name="location-outline" size={15} color={COLORS.textMuted} />
                 <Text style={styles.sectionTitle}>Local</Text>
               </View>
+
+              {/* CEP primeiro com busca automática */}
+              <Text style={styles.inputLabel}>CEP</Text>
+              <View style={styles.cepRow}>
+                <TextInput
+                  style={[styles.cepInput, errors.localCep && styles.cepInputError]}
+                  value={form.localCep}
+                  onChangeText={v => {
+                    const masked = formatCep(v);
+                    update('localCep', masked);
+                    if (masked.replace(/\D/g,'').length === 8) buscarCep(masked);
+                  }}
+                  placeholder="00000-000"
+                  placeholderTextColor={COLORS.textMuted}
+                  keyboardType="numeric"
+                  maxLength={9}
+                />
+                {buscandoCep
+                  ? <Ionicons name="reload-outline" size={18} color={COLORS.accent} style={styles.cepIcon} />
+                  : <Ionicons name="search-outline" size={18} color={COLORS.textMuted} style={styles.cepIcon} />
+                }
+              </View>
+              {errors.localCep ? <Text style={styles.errorText}>{errors.localCep}</Text> : null}
+
               <Input label="Nome do local / Hospital" value={form.localNome} onChangeText={v => update('localNome', v)} placeholder="Hospital São Lucas" error={errors.localNome} />
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <View style={{ flex: 2 }}>
@@ -224,7 +276,6 @@ export default function CriarPlantaoScreen({ navigation }) {
                   <Input label="UF" value={form.localUf} onChangeText={v => update('localUf', v.toUpperCase())} placeholder="SP" maxLength={2} error={errors.localUf} />
                 </View>
               </View>
-              <Input label="CEP (opcional)" value={form.localCep} onChangeText={v => update('localCep', v)} placeholder="00000-000" keyboardType="numeric" />
             </View>
 
             {/* Remuneração */}
@@ -319,6 +370,10 @@ const styles = StyleSheet.create({
   sectionTitle: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   inputLabel: { color: '#C9D4E8', fontSize: 13, fontWeight: '500', marginBottom: 6 },
+  cepRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 14, marginBottom: 16 },
+  cepInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 13 },
+  cepInputError: { borderColor: '#FF6B6B' },
+  cepIcon: { marginLeft: 8 },
   selectField: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10,

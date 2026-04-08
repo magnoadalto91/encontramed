@@ -270,7 +270,12 @@ model plantoes {
   prazoConfirmacao  DateTime?
   exigeRQE          Boolean        @default(false)
   observacoes       String?
+  titulo            String?
   descricao         String?
+  localNome         String?
+  localCidade       String?
+  localUf           String?
+  localCep          String?
   tipoValor         String         @default("FIXO")
   urgente           Boolean        @default(false)
   notificadoRaio    Int            @default(0)

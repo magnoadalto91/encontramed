@@ -118,6 +118,12 @@
         <form id="form-plantao" novalidate>
 
           <div class="form-grid">
+            <!-- Título -->
+            <div class="form-group form-col-full">
+              <label class="form-label">Título *</label>
+              <input type="text" class="input-field" id="p-titulo" placeholder="Ex: Plantão UTI — 12h noturno" required />
+            </div>
+
             <!-- Especialidade -->
             <div class="form-group form-col-full">
               <label class="form-label">Especialidade *</label>
@@ -140,6 +146,15 @@
             </div>
 
             <!-- Local -->
+            <div class="form-group" style="max-width:180px;">
+              <label class="form-label">CEP</label>
+              <div style="position:relative;">
+                <input type="text" class="input-field" id="p-local-cep" placeholder="00000-000" maxlength="9"
+                  oninput="onCepInput(this.value)"
+                  style="padding-right:36px;" />
+                <span id="cep-spinner" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);display:none;color:var(--accent);font-size:14px;">⟳</span>
+              </div>
+            </div>
             <div class="form-group form-col-full">
               <label class="form-label">Local / Nome do Hospital *</label>
               <input type="text" class="input-field" id="p-local-nome" placeholder="Ex: UTI — Bloco C" required />
@@ -242,6 +257,42 @@
   <script src="js/modal.js"></script>
   <script>
   'use strict';
+
+  // ─── CEP ────────────────────────────────────────────────────────────────────
+  function maskCep(v) {
+    const d = v.replace(/\D/g, '').slice(0, 8);
+    return d.length > 5 ? d.slice(0,5) + '-' + d.slice(5) : d;
+  }
+
+  let _cepTimer;
+  function onCepInput(raw) {
+    const el = document.getElementById('p-local-cep');
+    el.value = maskCep(raw);
+    clearTimeout(_cepTimer);
+    const digits = el.value.replace(/\D/g,'');
+    if (digits.length === 8) {
+      _cepTimer = setTimeout(() => buscarCep(digits), 400);
+    }
+  }
+  window.onCepInput = onCepInput;
+
+  async function buscarCep(digits) {
+    const spinner = document.getElementById('cep-spinner');
+    spinner.style.display = 'inline';
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const d = await r.json();
+      if (d.erro) { toast.error('CEP não encontrado'); return; }
+      const nomeEl = document.getElementById('p-local-nome');
+      if (!nomeEl.value) nomeEl.value = d.logradouro || '';
+      document.getElementById('p-local-cidade').value = d.localidade || '';
+      document.getElementById('p-local-uf').value = (d.uf || '').toUpperCase();
+    } catch {
+      toast.error('Erro ao buscar CEP');
+    } finally {
+      spinner.style.display = 'none';
+    }
+  }
 
   let _chatPlantaoId = null;
   let _meUserId = null;
@@ -406,6 +457,7 @@
   });
 
   document.getElementById('btn-salvar-plantao').addEventListener('click', async () => {
+    const titulo    = document.getElementById('p-titulo').value.trim();
     const espId     = document.getElementById('p-especialidade').value;
     const inicio    = document.getElementById('p-data-inicio').value;
     const fim       = document.getElementById('p-data-fim').value;
@@ -416,11 +468,12 @@
     const urgente   = document.getElementById('p-urgente').checked;
     const valMinBid = document.getElementById('p-valor-min-bid').value;
     const obs       = document.getElementById('p-obs').value.trim();
+    const localCep  = document.getElementById('p-local-cep').value.trim();
     const localNome = document.getElementById('p-local-nome').value.trim();
     const localCid  = document.getElementById('p-local-cidade').value.trim();
     const localUf   = document.getElementById('p-local-uf').value.trim().toUpperCase();
 
-    if (!espId || !inicio || !fim || !valor || !localNome || !localCid || !localUf) {
+    if (!titulo || !espId || !inicio || !fim || !valor || !localNome || !localCid || !localUf) {
       toast.error('Preencha todos os campos obrigatórios.');
       return;
     }
@@ -434,6 +487,7 @@
 
     try {
       await api.post('/plantoes', {
+        titulo,
         especialidadeId: Number(espId),
         dataInicio: new Date(inicio).toISOString(),
         dataFim:    new Date(fim).toISOString(),
@@ -443,6 +497,7 @@
         permiteBid: bid,
         urgente,
         valorMinimoBid: bid && valMinBid ? Number(valMinBid) : undefined,
+        localCep: localCep || undefined,
         localNome,
         localCidade: localCid,
         localUf,
