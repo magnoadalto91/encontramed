@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Portal Hospital | EncontraMed</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <a href="dashboard.html" class="sidebar-logo">
+        <div class="logo-icon">🏥</div>
+        <div class="logo-text">
+          <span class="encontra">Encontra</span><span class="med">Med</span>
+          <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-normal);color:var(--text-secondary);margin-top:2px;">Portal Hospital</div>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item active">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="plantoes.html" class="nav-item">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Plantões</span>
+        </a>
+        <a href="escalas.html" class="nav-item">
+          <span class="nav-icon">🗓</span>
+          <span class="nav-label">Escalas</span>
+        </a>
+        <a href="candidaturas.html" class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">Candidaturas</span>
+        </a>
+        <a href="perfil.html" class="nav-item">
+          <span class="nav-icon">🏥</span>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <div class="avatar" id="user-avatar">H</div>
+          <div style="flex:1;overflow:hidden;">
+            <div class="user-name truncate" id="user-nome">Hospital</div>
+            <div class="user-role">Hospital</div>
+          </div>
+          <button id="logout-btn" class="btn btn-ghost btn-icon btn-sm" title="Sair" style="flex-shrink:0;">⏻</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+          <span class="topbar-title">Dashboard</span>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <!-- Stats -->
+        <div class="stat-cards-grid" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-card-icon">📅</div>
+            </div>
+            <div class="stat-card-value" id="stat-abertos">—</div>
+            <div class="stat-card-label">Plantões Abertos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-card-icon">👥</div>
+            </div>
+            <div class="stat-card-value" id="stat-pendentes">—</div>
+            <div class="stat-card-label">Candidaturas Pendentes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-card-icon">✅</div>
+            </div>
+            <div class="stat-card-value" id="stat-realizados">—</div>
+            <div class="stat-card-label">Plantões Realizados Este Mês</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-card-icon">🩺</div>
+            </div>
+            <div class="stat-card-value" id="stat-medicos">—</div>
+            <div class="stat-card-label">Médicos Contratados</div>
+          </div>
+        </div>
+
+        <!-- Plantões Recentes -->
+        <div class="table-container" style="margin-bottom:var(--space-6);">
+          <div class="table-toolbar">
+            <div class="table-toolbar-left">
+              <span class="card-title">Plantões Recentes</span>
+            </div>
+            <div class="table-toolbar-right">
+              <a href="plantoes.html" class="btn btn-ghost btn-sm">Ver todos</a>
+            </div>
+          </div>
+          <div class="table-scroll-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Especialidade</th>
+                  <th>Data</th>
+                  <th>Status</th>
+                  <th>Candidatos</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="plantoes-tbody">
+                <tr><td colspan="6"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Candidaturas Pendentes -->
+        <div class="table-container">
+          <div class="table-toolbar">
+            <div class="table-toolbar-left">
+              <span class="card-title">Candidaturas Pendentes</span>
+            </div>
+            <div class="table-toolbar-right">
+              <a href="candidaturas.html" class="btn btn-ghost btn-sm">Ver todas</a>
+            </div>
+          </div>
+          <div class="table-scroll-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Médico</th>
+                  <th>CRM</th>
+                  <th>Plantão</th>
+                  <th>Data Cand.</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="candidaturas-tbody">
+                <tr><td colspan="5"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    'use strict';
+
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+      document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+    });
+
+    function statusBadge(s) {
+      const map = {
+        ABERTO: 'badge-aberto', CONFIRMADO: 'badge-confirmado',
+        REALIZADO: 'badge-realizado', CANCELADO: 'badge-cancelado',
+        CANDIDATADO: 'badge-candidatado', EXPIRADO: 'badge-expirado',
+      };
+      return `<span class="badge ${map[s] || 'badge-info'}">${s}</span>`;
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+
+    async function loadStats() {
+      try {
+        const data = await api.get('/hospitais/me/stats');
+        document.getElementById('stat-abertos').textContent   = data.plantoes_abertos   ?? '—';
+        document.getElementById('stat-pendentes').textContent = data.candidaturas_pendentes ?? '—';
+        document.getElementById('stat-realizados').textContent = data.plantoes_realizados_mes ?? '—';
+        document.getElementById('stat-medicos').textContent   = data.medicos_contratados  ?? '—';
+      } catch {
+        // graceful — stats are optional
+      }
+    }
+
+    async function loadPlantoes() {
+      const tbody = document.getElementById('plantoes-tbody');
+      try {
+        const data = await api.get('/plantoes/hospital?limit=10');
+        const items = Array.isArray(data) ? data : (data.plantoes || []);
+        if (!items.length) {
+          tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">Nenhum plantão</div><div class="empty-state-text">Crie seu primeiro plantão.</div></div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = items.map(p => `
+          <tr>
+            <td class="td-secondary">#${p.id}</td>
+            <td>${p.especialidade?.nome || p.especialidadeNome || '—'}</td>
+            <td>${fmtDate(p.dataInicio)}</td>
+            <td>${statusBadge(p.status)}</td>
+            <td>${p._count?.candidaturas ?? p.totalCandidatos ?? 0}</td>
+            <td>
+              <div class="td-actions">
+                <a href="candidaturas.html?plantao=${p.id}" class="btn btn-ghost btn-xs">Ver candidatos</a>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:var(--space-8);">Erro ao carregar plantões.</td></tr>`;
+      }
+    }
+
+    async function aceitarCandidatura(id) {
+      try {
+        await api.post(`/candidaturas/${id}/aceitar`);
+        toast.success('Candidatura aceita!');
+        loadCandidaturas();
+        loadStats();
+      } catch (err) { toast.error(err.message); }
+    }
+
+    async function rejeitarCandidatura(id) {
+      try {
+        await api.post(`/candidaturas/${id}/rejeitar`);
+        toast.success('Candidatura rejeitada.');
+        loadCandidaturas();
+        loadStats();
+      } catch (err) { toast.error(err.message); }
+    }
+
+    async function loadCandidaturas() {
+      const tbody = document.getElementById('candidaturas-tbody');
+      try {
+        const data = await api.get('/candidaturas/hospital?status=PENDENTE&limit=5');
+        const items = Array.isArray(data) ? data : (data.candidaturas || []);
+        if (!items.length) {
+          tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">Nenhuma candidatura pendente</div></div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = items.map(c => `
+          <tr>
+            <td>${c.medico?.nomeCompleto || c.medicoNome || '—'}</td>
+            <td class="td-secondary">${c.medico?.crm || c.crm || '—'}</td>
+            <td>${fmtDate(c.plantao?.dataInicio || c.plantaoData)}</td>
+            <td class="td-secondary">${fmtDate(c.createdAt)}</td>
+            <td>
+              <div class="td-actions">
+                <button class="btn btn-success btn-xs" onclick="aceitarCandidatura(${c.id})">✅ Aceitar</button>
+                <button class="btn btn-danger btn-xs" onclick="rejeitarCandidatura(${c.id})">❌ Rejeitar</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:var(--space-8);">Erro ao carregar candidaturas.</td></tr>`;
+      }
+    }
+
+    window.aceitarCandidatura = aceitarCandidatura;
+    window.rejeitarCandidatura = rejeitarCandidatura;
+
+    loadStats();
+    loadPlantoes();
+    loadCandidaturas();
+  </script>
+</body>
+</html>

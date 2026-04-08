@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EncontraMed — Portal Hospital</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <style>
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg-primary);
+      padding: var(--space-4);
+    }
+
+    .login-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-xl);
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: var(--space-6);
+    }
+
+    .login-logo .logo-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--gradient);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin: 0 auto var(--space-3);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .login-logo .logo-text {
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+    }
+
+    .logo-encontra { color: var(--accent-teal); }
+    .logo-med { color: rgba(255,255,255,0.9); }
+
+    .login-subtitle {
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      margin-top: var(--space-1);
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: var(--space-5);
+      font-size: var(--font-size-sm);
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="logo-icon">🏥</div>
+        <div class="logo-text">
+          <span class="logo-encontra">Encontra</span><span class="logo-med">Med</span>
+        </div>
+        <div class="login-subtitle">Portal Hospital</div>
+      </div>
+
+      <form class="login-form" id="login-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">E-mail</label>
+          <input
+            type="email"
+            id="email"
+            class="input-field"
+            placeholder="hospital@exemplo.com"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="senha">Senha</label>
+          <div class="input-wrapper">
+            <input
+              type="password"
+              id="senha"
+              class="input-field"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+            <button
+              type="button"
+              class="input-action"
+              id="toggle-senha"
+              aria-label="Mostrar/ocultar senha"
+              style="background:none;border:none;cursor:pointer;"
+            >👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" id="btn-entrar" style="width:100%;margin-top:var(--space-2);">
+          Entrar
+        </button>
+      </form>
+
+      <div class="login-footer">
+        Acesse pelo app para se cadastrar
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/toast.js"></script>
+  <script>
+    'use strict';
+
+    document.getElementById('toggle-senha').addEventListener('click', function () {
+      const input = document.getElementById('senha');
+      if (input.type === 'password') {
+        input.type = 'text';
+        this.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        this.textContent = '👁';
+      }
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      const btn = document.getElementById('btn-entrar');
+
+      if (!email || !senha) {
+        toast.error('Preencha e-mail e senha.');
+        return;
+      }
+
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+
+      try {
+        const data = await api.post('/auth/login', { email, senha, plataforma: 'web' });
+
+        if (data.role !== 'HOSPITAL') {
+          toast.error('Esta área é exclusiva para hospitais.');
+          return;
+        }
+
+        localStorage.setItem('hospital_token', data.token);
+        localStorage.setItem('hospital_user', JSON.stringify(data.user || { nomeCompleto: data.nomeFantasia || email }));
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        toast.error(err.message || 'Credenciais inválidas.');
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

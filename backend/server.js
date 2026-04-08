@@ -79,10 +79,34 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', env: process.env.NODE_ENV, ts: new Date().toISOString(), __dirname, adminPath, adminExists, files });
 });
 
-// ─── SPA Fallback for Admin ───────────────────────────────────────────────────
+// ─── SPA Fallbacks ────────────────────────────────────────────────────────────
 
 app.get('/admin/*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
+});
+
+app.get('/medico', (req, res) => res.redirect('/medico/login.html'));
+app.get('/medico/*', (req, res) => {
+  const file = req.path.replace('/medico/', '');
+  const filePath = path.join(__dirname, 'public', 'medico', file);
+  const fs = require('fs');
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.sendFile(path.join(__dirname, 'public', 'medico', 'login.html'));
+  }
+});
+
+app.get('/hospital', (req, res) => res.redirect('/hospital/login.html'));
+app.get('/hospital/*', (req, res) => {
+  const file = req.path.replace('/hospital/', '');
+  const filePath = path.join(__dirname, 'public', 'hospital', file);
+  const fs = require('fs');
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.sendFile(path.join(__dirname, 'public', 'hospital', 'login.html'));
+  }
 });
 
 // ─── Error Handler ───────────────────────────────────────────────────────────

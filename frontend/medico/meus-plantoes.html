@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meus Plantões — EncontraMed Médico</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <a href="dashboard.html" class="sidebar-logo">
+        <div class="logo-icon">E</div>
+        <div class="logo-text">
+          <span class="encontra">Encontra</span><span class="med">Med</span>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Início</span>
+        </a>
+        <a href="meus-plantoes.html" class="nav-item active">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Meus Plantões</span>
+        </a>
+        <a href="escalas.html" class="nav-item">
+          <span class="nav-icon">🗓</span>
+          <span class="nav-label">Escalas</span>
+        </a>
+        <a href="perfil.html" class="nav-item">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-menu">
+          <div class="avatar" id="user-avatar">M</div>
+          <div class="user-info">
+            <div class="user-name" id="user-nome">Médico</div>
+            <div class="user-role">Portal Médico</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="logout-btn" style="width:100%;margin-top:var(--space-2);">
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+          <h1 class="topbar-title">Meus Plantões</h1>
+        </div>
+        <div class="topbar-right"></div>
+      </header>
+
+      <!-- Content -->
+      <div class="content-area">
+        <!-- Tabs -->
+        <div class="tabs" id="tabs" style="margin-bottom:var(--space-6);">
+          <button class="tab-btn active" data-tab="candidaturas">Candidaturas</button>
+          <button class="tab-btn" data-tab="confirmados">Confirmados</button>
+          <button class="tab-btn" data-tab="realizados">Realizados</button>
+        </div>
+
+        <!-- Candidaturas Tab -->
+        <div class="tab-panel active" id="panel-candidaturas">
+          <div class="table-container">
+            <div class="table-toolbar">
+              <div class="table-toolbar-left">
+                <span class="card-title">Minhas Candidaturas</span>
+              </div>
+            </div>
+            <div class="table-scroll-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Plantão</th>
+                    <th>Hospital</th>
+                    <th>Especialidade</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="candidaturas-tbody">
+                  <tr><td colspan="7"><div class="loading-overlay"><div class="spinner"></div><span class="loading-text">Carregando...</span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confirmados Tab -->
+        <div class="tab-panel" id="panel-confirmados">
+          <div class="table-container">
+            <div class="table-toolbar">
+              <div class="table-toolbar-left">
+                <span class="card-title">Plantões Confirmados</span>
+              </div>
+            </div>
+            <div class="table-scroll-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Hospital</th>
+                    <th>Especialidade</th>
+                    <th>Data/Hora</th>
+                    <th>Duração</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="confirmados-tbody">
+                  <tr><td colspan="6"><div class="loading-overlay"><div class="spinner"></div><span class="loading-text">Carregando...</span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Realizados Tab -->
+        <div class="tab-panel" id="panel-realizados">
+          <div class="table-container">
+            <div class="table-toolbar">
+              <div class="table-toolbar-left">
+                <span class="card-title">Plantões Realizados</span>
+              </div>
+            </div>
+            <div class="table-scroll-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Hospital</th>
+                    <th>Especialidade</th>
+                    <th>Data/Hora</th>
+                    <th>Duração</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="realizados-tbody">
+                  <tr><td colspan="6"><div class="loading-overlay"><div class="spinner"></div><span class="loading-text">Carregando...</span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    'use strict';
+
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+      document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+    });
+
+    // Tabs
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'confirmados') loadConfirmados();
+        if (btn.dataset.tab === 'realizados') loadRealizados();
+      });
+    });
+
+    function fmt(n) {
+      if (n == null) return '—';
+      return Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function fmtData(str) {
+      if (!str) return '—';
+      try { return new Date(str).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); }
+      catch { return str; }
+    }
+
+    function statusBadge(status) {
+      const map = {
+        PENDENTE: 'badge-warning',
+        ACEITA: 'badge-success',
+        ACEITO: 'badge-success',
+        CONFIRMADO: 'badge-confirmado',
+        REJEITADA: 'badge-danger',
+        REJEITADO: 'badge-danger',
+        CANCELADA: 'badge-cancelado',
+        CANCELADO: 'badge-cancelado',
+        REALIZADO: 'badge-realizado',
+        PAGO: 'badge-pago',
+      };
+      const cls = map[status] || 'badge-nao-verificado';
+      return `<span class="badge ${cls}">${status || '—'}</span>`;
+    }
+
+    async function loadCandidaturas() {
+      const tbody = document.getElementById('candidaturas-tbody');
+      try {
+        const data = await api.get('/candidaturas/minhas');
+        const list = Array.isArray(data) ? data : (data.candidaturas || data.data || []);
+
+        if (!list.length) {
+          tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">Nenhuma candidatura</div><div class="empty-state-text">Você ainda não se candidatou a nenhum plantão.</div></div></td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = list.map(c => {
+          const plantao = c.plantao || {};
+          const hospital = plantao.hospital || {};
+          const canCancel = c.status === 'PENDENTE';
+          return `
+            <tr>
+              <td class="td-secondary">#${c.plantaoId || c.id || '—'}</td>
+              <td>${hospital.nomeFantasia || hospital.razaoSocial || plantao.hospitalNome || '—'}</td>
+              <td>${plantao.especialidade || c.especialidade || '—'}</td>
+              <td class="td-secondary">${fmtData(plantao.dataHoraInicio || plantao.dataInicio || c.createdAt)}</td>
+              <td>${fmt(plantao.valor || plantao.valorTotal || c.valor)}</td>
+              <td>${statusBadge(c.status)}</td>
+              <td>
+                <div class="td-actions">
+                  ${canCancel ? `<button class="btn btn-danger btn-sm" onclick="cancelarCandidatura(${c.id})">Cancelar</button>` : '—'}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Erro ao carregar</div><div class="empty-state-text">${err.message}</div></div></td></tr>`;
+      }
+    }
+
+    async function cancelarCandidatura(id) {
+      showConfirm('Deseja cancelar esta candidatura?', async () => {
+        try {
+          await api.del(`/candidaturas/${id}`);
+          toast.success('Candidatura cancelada.');
+          loadCandidaturas();
+        } catch (err) {
+          toast.error(err.message || 'Erro ao cancelar candidatura.');
+        }
+      }, 'danger');
+    }
+
+    async function loadPlantoesStatus(status, tbodyId, cols) {
+      const tbody = document.getElementById(tbodyId);
+      try {
+        const data = await api.get('/plantoes/medico');
+        const all = Array.isArray(data) ? data : (data.plantoes || data.data || []);
+        const list = all.filter(p => {
+          if (Array.isArray(status)) return status.includes(p.status);
+          return p.status === status;
+        });
+
+        if (!list.length) {
+          tbody.innerHTML = `<tr><td colspan="${cols}"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">Nenhum plantão</div><div class="empty-state-text">Nenhum plantão encontrado nesta categoria.</div></div></td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = list.map(p => {
+          const hospital = p.hospital || {};
+          return `
+            <tr>
+              <td>${hospital.nomeFantasia || hospital.razaoSocial || p.hospitalNome || '—'}</td>
+              <td>${p.especialidade || '—'}</td>
+              <td class="td-secondary">${fmtData(p.dataHoraInicio || p.dataInicio)}</td>
+              <td class="td-secondary">${p.duracaoHoras ? p.duracaoHoras + 'h' : '—'}</td>
+              <td>${fmt(p.valor || p.valorTotal)}</td>
+              <td>${statusBadge(p.status)}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="${cols}"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Erro ao carregar</div><div class="empty-state-text">${err.message}</div></div></td></tr>`;
+      }
+    }
+
+    function loadConfirmados() {
+      loadPlantoesStatus(['CONFIRMADO', 'ACEITO', 'ACEITA'], 'confirmados-tbody', 6);
+    }
+
+    function loadRealizados() {
+      loadPlantoesStatus(['REALIZADO', 'PAGO'], 'realizados-tbody', 6);
+    }
+
+    window.cancelarCandidatura = cancelarCandidatura;
+
+    loadCandidaturas();
+  </script>
+</body>
+</html>

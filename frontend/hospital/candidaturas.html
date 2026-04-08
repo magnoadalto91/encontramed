@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Candidaturas — Portal Hospital | EncontraMed</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <a href="dashboard.html" class="sidebar-logo">
+        <div class="logo-icon">🏥</div>
+        <div class="logo-text">
+          <span class="encontra">Encontra</span><span class="med">Med</span>
+          <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-normal);color:var(--text-secondary);margin-top:2px;">Portal Hospital</div>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="plantoes.html" class="nav-item">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Plantões</span>
+        </a>
+        <a href="escalas.html" class="nav-item">
+          <span class="nav-icon">🗓</span>
+          <span class="nav-label">Escalas</span>
+        </a>
+        <a href="candidaturas.html" class="nav-item active">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">Candidaturas</span>
+        </a>
+        <a href="perfil.html" class="nav-item">
+          <span class="nav-icon">🏥</span>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <div class="avatar" id="user-avatar">H</div>
+          <div style="flex:1;overflow:hidden;">
+            <div class="user-name truncate" id="user-nome">Hospital</div>
+            <div class="user-role">Hospital</div>
+          </div>
+          <button id="logout-btn" class="btn btn-ghost btn-icon btn-sm" title="Sair" style="flex-shrink:0;">⏻</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+          <span class="topbar-title">Candidaturas</span>
+        </div>
+        <div class="topbar-right">
+          <select class="select-field" id="filter-status" style="width:auto;">
+            <option value="">Todas</option>
+            <option value="PENDENTE">Pendente</option>
+            <option value="ACEITA">Aceita</option>
+            <option value="REJEITADA">Rejeitada</option>
+          </select>
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="search-plantao" placeholder="Buscar por plantão..." />
+          </div>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div class="table-container">
+          <div class="table-scroll-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Médico</th>
+                  <th>CRM/UF</th>
+                  <th>Especialidade</th>
+                  <th>Plantão</th>
+                  <th>Data Candidatura</th>
+                  <th>Valor Proposto</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="candidaturas-tbody">
+                <tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination" style="display:none;">
+            <span class="pagination-info" id="pagination-info"></span>
+            <div class="pagination-controls" id="pagination-controls"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    'use strict';
+
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+      document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+    });
+
+    let currentPage = 1;
+    const PAGE_SIZE = 20;
+
+    function statusBadge(s) {
+      const map = {
+        PENDENTE: 'badge-pendente',
+        ACEITA:   'badge-confirmado',
+        REJEITADA: 'badge-rejeitado',
+      };
+      return `<span class="badge ${map[s] || 'badge-info'}">${s}</span>`;
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+
+    function fmtMoney(v) {
+      if (v == null) return '—';
+      return Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+    }
+
+    async function aceitarCandidatura(id) {
+      showConfirm('Confirmar aceitação desta candidatura?', async () => {
+        try {
+          await api.post(`/candidaturas/${id}/aceitar`);
+          toast.success('Candidatura aceita!');
+          loadCandidaturas();
+        } catch (err) { toast.error(err.message); }
+      }, 'info');
+    }
+
+    async function rejeitarCandidatura(id) {
+      try {
+        await api.post(`/candidaturas/${id}/rejeitar`);
+        toast.success('Candidatura rejeitada.');
+        loadCandidaturas();
+      } catch (err) { toast.error(err.message); }
+    }
+
+    window.aceitarCandidatura = aceitarCandidatura;
+    window.rejeitarCandidatura = rejeitarCandidatura;
+
+    async function loadCandidaturas(page = 1) {
+      const tbody = document.getElementById('candidaturas-tbody');
+      const status = document.getElementById('filter-status').value;
+      const search = document.getElementById('search-plantao').value.trim();
+      const offset = (page - 1) * PAGE_SIZE;
+
+      let qs = `?limit=${PAGE_SIZE}&offset=${offset}`;
+      if (status) qs += `&status=${status}`;
+      if (search) qs += `&plantao=${encodeURIComponent(search)}`;
+
+      tbody.innerHTML = '<tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>';
+
+      try {
+        const data = await api.get(`/candidaturas/hospital${qs}`);
+        const items = Array.isArray(data) ? data : (data.candidaturas || []);
+        const total = data.total || items.length;
+
+        if (!items.length) {
+          tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">Nenhuma candidatura encontrada</div></div></td></tr>';
+          document.getElementById('pagination').style.display = 'none';
+          return;
+        }
+
+        tbody.innerHTML = items.map(c => `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:var(--space-2);">
+                <div class="avatar avatar-sm">${(c.medico?.nomeCompleto || c.medicoNome || '?').charAt(0).toUpperCase()}</div>
+                <span>${c.medico?.nomeCompleto || c.medicoNome || '—'}</span>
+              </div>
+            </td>
+            <td class="td-secondary">${c.medico?.crm || c.crm || '—'}${c.medico?.ufCrm ? '/' + c.medico.ufCrm : ''}</td>
+            <td>${c.plantao?.especialidade?.nome || c.especialidadeNome || '—'}</td>
+            <td class="td-secondary">${fmtDate(c.plantao?.dataInicio || c.plantaoData)}</td>
+            <td class="td-secondary">${fmtDate(c.createdAt)}</td>
+            <td>${fmtMoney(c.valorProposto)}</td>
+            <td>${statusBadge(c.status)}</td>
+            <td>
+              <div class="td-actions">
+                ${c.status === 'PENDENTE' ? `
+                  <button class="btn btn-success btn-xs" onclick="aceitarCandidatura(${c.id})">✅ Aceitar</button>
+                  <button class="btn btn-danger btn-xs" onclick="rejeitarCandidatura(${c.id})">❌ Rejeitar</button>
+                ` : '—'}
+              </div>
+            </td>
+          </tr>
+        `).join('');
+
+        // Pagination
+        const totalPages = Math.ceil(total / PAGE_SIZE);
+        if (totalPages > 1) {
+          const pag = document.getElementById('pagination');
+          const info = document.getElementById('pagination-info');
+          const controls = document.getElementById('pagination-controls');
+          pag.style.display = 'flex';
+          info.textContent = `${offset + 1}–${Math.min(offset + items.length, total)} de ${total}`;
+          controls.innerHTML = '';
+
+          const prevBtn = document.createElement('button');
+          prevBtn.className = 'page-btn';
+          prevBtn.textContent = '‹';
+          prevBtn.disabled = page <= 1;
+          prevBtn.addEventListener('click', () => loadCandidaturas(page - 1));
+          controls.appendChild(prevBtn);
+
+          for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++) {
+            const btn = document.createElement('button');
+            btn.className = 'page-btn' + (i === page ? ' active' : '');
+            btn.textContent = i;
+            btn.addEventListener('click', () => loadCandidaturas(i));
+            controls.appendChild(btn);
+          }
+
+          const nextBtn = document.createElement('button');
+          nextBtn.className = 'page-btn';
+          nextBtn.textContent = '›';
+          nextBtn.disabled = page >= totalPages;
+          nextBtn.addEventListener('click', () => loadCandidaturas(page + 1));
+          controls.appendChild(nextBtn);
+        } else {
+          document.getElementById('pagination').style.display = 'none';
+        }
+
+        currentPage = page;
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:var(--space-8);">Erro ao carregar candidaturas.</td></tr>`;
+      }
+    }
+
+    document.getElementById('filter-status').addEventListener('change', () => loadCandidaturas(1));
+
+    let searchTimer;
+    document.getElementById('search-plantao').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => loadCandidaturas(1), 400);
+    });
+
+    // Read plantao filter from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('plantao')) {
+      document.getElementById('search-plantao').value = urlParams.get('plantao');
+    }
+
+    loadCandidaturas(1);
+  </script>
+</body>
+</html>

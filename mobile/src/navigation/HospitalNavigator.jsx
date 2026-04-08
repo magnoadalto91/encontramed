@@ -6,11 +6,10 @@ import { COLORS } from '../utils/constants';
 import DashboardScreen from '../screens/hospital/DashboardScreen';
 import CriarPlantaoScreen from '../screens/hospital/CriarPlantaoScreen';
 import TrocasScreen from '../screens/hospital/TrocasScreen';
-import FinanceiroHospitalScreen from '../screens/hospital/FinanceiroHospitalScreen';
 import PerfilHospitalScreen from '../screens/hospital/PerfilHospitalScreen';
 
 const Tab = createBottomTabNavigator();
-const ICONS = { Dashboard: '📊', CriarPlantao: '➕', Trocas: '🔄', Financeiro: '💰', Perfil: '🏥' };
+const ICONS = { Dashboard: '📊', CriarPlantao: '➕', Trocas: '🔄', Perfil: '🏥' };
 
 export default function HospitalNavigator() {
   return (
@@ -27,7 +26,6 @@ export default function HospitalNavigator() {
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Dashboard' }} />
       <Tab.Screen name="CriarPlantao" component={CriarPlantaoScreen} options={{ title: 'Novo Plantão' }} />
       <Tab.Screen name="Trocas" component={TrocasScreen} options={{ title: 'Trocas' }} />
-      <Tab.Screen name="Financeiro" component={FinanceiroHospitalScreen} options={{ title: 'Financeiro' }} />
       <Tab.Screen name="Perfil" component={PerfilHospitalScreen} options={{ title: 'Perfil' }} />
     </Tab.Navigator>
   );

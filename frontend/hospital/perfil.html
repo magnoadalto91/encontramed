@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perfil — Portal Hospital | EncontraMed</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <a href="dashboard.html" class="sidebar-logo">
+        <div class="logo-icon">🏥</div>
+        <div class="logo-text">
+          <span class="encontra">Encontra</span><span class="med">Med</span>
+          <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-normal);color:var(--text-secondary);margin-top:2px;">Portal Hospital</div>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="plantoes.html" class="nav-item">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Plantões</span>
+        </a>
+        <a href="escalas.html" class="nav-item">
+          <span class="nav-icon">🗓</span>
+          <span class="nav-label">Escalas</span>
+        </a>
+        <a href="candidaturas.html" class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">Candidaturas</span>
+        </a>
+        <a href="perfil.html" class="nav-item active">
+          <span class="nav-icon">🏥</span>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <div class="avatar" id="user-avatar">H</div>
+          <div style="flex:1;overflow:hidden;">
+            <div class="user-name truncate" id="user-nome">Hospital</div>
+            <div class="user-role">Hospital</div>
+          </div>
+          <button id="logout-btn" class="btn btn-ghost btn-icon btn-sm" title="Sair" style="flex-shrink:0;">⏻</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+          <span class="topbar-title">Perfil do Hospital</span>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div id="loading-perfil" class="loading-overlay"><div class="spinner"></div></div>
+
+        <div id="perfil-content" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);">
+
+            <!-- Card: Dados da Empresa -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Dados da Empresa</div>
+                  <div class="card-subtitle">Informações institucionais do hospital</div>
+                </div>
+              </div>
+              <form id="form-dados" novalidate>
+                <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+                  <div class="form-group">
+                    <label class="form-label">Razão Social</label>
+                    <input type="text" class="input-field" id="p-razao-social" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Nome Fantasia</label>
+                    <input type="text" class="input-field" id="p-nome-fantasia" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">CNPJ</label>
+                    <input type="text" class="input-field" id="p-cnpj" disabled style="opacity:0.6;cursor:not-allowed;" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">CNES</label>
+                    <input type="text" class="input-field" id="p-cnes" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Telefone</label>
+                    <input type="tel" class="input-field" id="p-telefone" placeholder="(11) 99999-9999" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">E-mail</label>
+                    <input type="email" class="input-field" id="p-email" disabled style="opacity:0.6;cursor:not-allowed;" />
+                  </div>
+                  <div style="display:flex;justify-content:flex-end;margin-top:var(--space-2);">
+                    <button type="button" class="btn btn-primary" id="btn-salvar-dados">Salvar Dados</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Card: Endereço -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Endereço</div>
+                  <div class="card-subtitle">Localização do hospital</div>
+                </div>
+              </div>
+              <form id="form-endereco" novalidate>
+                <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+                  <div class="form-group">
+                    <label class="form-label">Logradouro</label>
+                    <input type="text" class="input-field" id="e-logradouro" placeholder="Rua, Avenida..." />
+                  </div>
+                  <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-4);">
+                    <div class="form-group">
+                      <label class="form-label">Número</label>
+                      <input type="text" class="input-field" id="e-numero" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Complemento</label>
+                      <input type="text" class="input-field" id="e-complemento" placeholder="Sala, Bloco..." />
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Bairro</label>
+                    <input type="text" class="input-field" id="e-bairro" />
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);">
+                    <div class="form-group">
+                      <label class="form-label">Cidade</label>
+                      <input type="text" class="input-field" id="e-cidade" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Estado (UF)</label>
+                      <select class="select-field" id="e-estado">
+                        <option value="">Selecione...</option>
+                        <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+                        <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+                        <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+                        <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+                        <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                        <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+                        <option>SP</option><option>SE</option><option>TO</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">CEP</label>
+                    <input type="text" class="input-field" id="e-cep" placeholder="00000-000" />
+                  </div>
+                  <div style="display:flex;justify-content:flex-end;margin-top:var(--space-2);">
+                    <button type="button" class="btn btn-primary" id="btn-salvar-endereco">Salvar Endereço</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    'use strict';
+
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+      document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+    });
+
+    async function loadPerfil() {
+      try {
+        const data = await api.get('/hospitais/me');
+        const h = data.hospital || data;
+
+        document.getElementById('p-razao-social').value  = h.razaoSocial  || '';
+        document.getElementById('p-nome-fantasia').value = h.nomeFantasia || '';
+        document.getElementById('p-cnpj').value          = h.cnpj         || '';
+        document.getElementById('p-cnes').value          = h.cnes         || '';
+        document.getElementById('p-telefone').value      = h.telefone     || '';
+        document.getElementById('p-email').value         = h.email        || h.user?.email || '';
+
+        const end = h.endereco || h;
+        document.getElementById('e-logradouro').value  = end.logradouro  || '';
+        document.getElementById('e-numero').value      = end.numero      || '';
+        document.getElementById('e-complemento').value = end.complemento || '';
+        document.getElementById('e-bairro').value      = end.bairro      || '';
+        document.getElementById('e-cidade').value      = end.cidade      || '';
+        document.getElementById('e-estado').value      = end.estado      || '';
+        document.getElementById('e-cep').value         = end.cep         || '';
+
+        document.getElementById('loading-perfil').style.display = 'none';
+        document.getElementById('perfil-content').style.display = 'block';
+      } catch (err) {
+        document.getElementById('loading-perfil').innerHTML = `<div style="color:var(--text-secondary)">Erro ao carregar perfil. <button class="btn btn-ghost btn-sm" onclick="loadPerfil()">Tentar novamente</button></div>`;
+      }
+    }
+
+    document.getElementById('btn-salvar-dados').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-salvar-dados');
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+      try {
+        await api.put('/hospitais/me', {
+          razaoSocial:  document.getElementById('p-razao-social').value.trim(),
+          nomeFantasia: document.getElementById('p-nome-fantasia').value.trim(),
+          cnes:         document.getElementById('p-cnes').value.trim(),
+          telefone:     document.getElementById('p-telefone').value.trim(),
+        });
+        toast.success('Dados salvos com sucesso!');
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('btn-salvar-endereco').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-salvar-endereco');
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+      try {
+        await api.put('/hospitais/me', {
+          endereco: {
+            logradouro:  document.getElementById('e-logradouro').value.trim(),
+            numero:      document.getElementById('e-numero').value.trim(),
+            complemento: document.getElementById('e-complemento').value.trim(),
+            bairro:      document.getElementById('e-bairro').value.trim(),
+            cidade:      document.getElementById('e-cidade').value.trim(),
+            estado:      document.getElementById('e-estado').value,
+            cep:         document.getElementById('e-cep').value.trim(),
+          }
+        });
+        toast.success('Endereço salvo com sucesso!');
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    });
+
+    loadPerfil();
+  </script>
+</body>
+</html>

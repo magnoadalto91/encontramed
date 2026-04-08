@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — EncontraMed Médico</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <a href="dashboard.html" class="sidebar-logo">
+        <div class="logo-icon">E</div>
+        <div class="logo-text">
+          <span class="encontra">Encontra</span><span class="med">Med</span>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item active">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Início</span>
+        </a>
+        <a href="meus-plantoes.html" class="nav-item">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Meus Plantões</span>
+        </a>
+        <a href="escalas.html" class="nav-item">
+          <span class="nav-icon">🗓</span>
+          <span class="nav-label">Escalas</span>
+        </a>
+        <a href="perfil.html" class="nav-item">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-menu">
+          <div class="avatar" id="user-avatar">M</div>
+          <div class="user-info">
+            <div class="user-name" id="user-nome">Médico</div>
+            <div class="user-role">Portal Médico</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="logout-btn" style="width:100%;margin-top:var(--space-2);">
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+          <h1 class="topbar-title">Plantões Disponíveis</h1>
+        </div>
+        <div class="topbar-right">
+          <div style="display:flex;gap:var(--space-2);align-items:center;">
+            <input type="text" class="input-field" id="search-input" placeholder="Especialidade ou cidade..." style="width:260px;">
+            <button class="btn btn-primary btn-sm" id="btn-buscar">Buscar</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="content-area">
+        <!-- Stats Row -->
+        <div class="stat-cards-grid" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div>
+                <div class="stat-card-label">Plantões Disponíveis</div>
+                <div class="stat-card-value" id="stat-disponiveis">—</div>
+              </div>
+              <div class="stat-card-icon">🏥</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div>
+                <div class="stat-card-label">Candidaturas Pendentes</div>
+                <div class="stat-card-value" id="stat-pendentes">—</div>
+              </div>
+              <div class="stat-card-icon">⏳</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div>
+                <div class="stat-card-label">Confirmados Este Mês</div>
+                <div class="stat-card-value" id="stat-confirmados">—</div>
+              </div>
+              <div class="stat-card-icon">✅</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div>
+                <div class="stat-card-label">Escalas Ativas</div>
+                <div class="stat-card-value" id="stat-escalas">—</div>
+              </div>
+              <div class="stat-card-icon">🗓</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plantões Table -->
+        <div class="table-container">
+          <div class="table-toolbar">
+            <div class="table-toolbar-left">
+              <span class="card-title">Plantões em Aberto</span>
+            </div>
+            <div class="table-toolbar-right">
+              <span id="total-label" class="form-hint"></span>
+            </div>
+          </div>
+          <div class="table-scroll-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Especialidade</th>
+                  <th>Hospital</th>
+                  <th>Cidade/UF</th>
+                  <th>Data/Hora</th>
+                  <th>Duração</th>
+                  <th>Valor</th>
+                  <th>Distância</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="plantoes-tbody">
+                <tr>
+                  <td colspan="8">
+                    <div class="loading-overlay">
+                      <div class="spinner"></div>
+                      <span class="loading-text">Carregando plantões...</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    'use strict';
+
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      const sidebar = document.getElementById('sidebar');
+      const main = document.getElementById('main-content');
+      sidebar.classList.toggle('collapsed');
+      main.classList.toggle('sidebar-collapsed');
+    });
+
+    function fmt(n) {
+      if (n == null) return '—';
+      return Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function fmtData(str) {
+      if (!str) return '—';
+      try {
+        return new Date(str).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+      } catch { return str; }
+    }
+
+    function fmtDuracao(h) {
+      if (!h) return '—';
+      return h + 'h';
+    }
+
+    let allPlantoes = [];
+
+    async function loadStats() {
+      try {
+        const stats = await api.get('/medicos/me/stats');
+        document.getElementById('stat-disponiveis').textContent = stats.disponíveis ?? stats.disponiveis ?? 0;
+        document.getElementById('stat-pendentes').textContent = stats.pendentes ?? 0;
+        document.getElementById('stat-confirmados').textContent = stats.confirmados ?? 0;
+        document.getElementById('stat-escalas').textContent = stats.escalas ?? 0;
+      } catch {
+        document.getElementById('stat-disponiveis').textContent = '0';
+        document.getElementById('stat-pendentes').textContent = '0';
+        document.getElementById('stat-confirmados').textContent = '0';
+        document.getElementById('stat-escalas').textContent = '0';
+      }
+    }
+
+    async function loadPlantoes(query = '') {
+      const tbody = document.getElementById('plantoes-tbody');
+      tbody.innerHTML = `<tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div><span class="loading-text">Carregando plantões...</span></div></td></tr>`;
+
+      try {
+        let endpoint = '/plantoes?status=ABERTO&limit=50';
+        if (query) endpoint += `&q=${encodeURIComponent(query)}`;
+        const data = await api.get(endpoint);
+        allPlantoes = Array.isArray(data) ? data : (data.plantoes || data.data || []);
+        renderPlantoes(allPlantoes);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Erro ao carregar</div><div class="empty-state-text">${err.message}</div></div></td></tr>`;
+      }
+    }
+
+    function renderPlantoes(list) {
+      const tbody = document.getElementById('plantoes-tbody');
+      document.getElementById('total-label').textContent = `${list.length} plantão${list.length !== 1 ? 'ões' : ''} encontrado${list.length !== 1 ? 's' : ''}`;
+
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">🏥</div><div class="empty-state-title">Nenhum plantão disponível</div><div class="empty-state-text">Não há plantões em aberto no momento. Volte mais tarde.</div></div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => `
+        <tr>
+          <td><strong>${p.especialidade || '—'}</strong></td>
+          <td>${p.hospital?.nomeFantasia || p.hospital?.razaoSocial || p.hospitalNome || '—'}</td>
+          <td class="td-secondary">${p.cidade || '—'}${p.uf ? '/' + p.uf : ''}</td>
+          <td class="td-secondary">${fmtData(p.dataHoraInicio || p.dataInicio)}</td>
+          <td class="td-secondary">${fmtDuracao(p.duracaoHoras || p.duracao)}</td>
+          <td><strong style="color:var(--accent-teal)">${fmt(p.valor || p.valorTotal)}</strong></td>
+          <td class="td-secondary">${p.distancia ? p.distancia + ' km' : '—'}</td>
+          <td>
+            <div class="td-actions">
+              <button class="btn btn-primary btn-sm" onclick="candidatar(${p.id})">Candidatar</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function candidatar(plantaoId) {
+      try {
+        await api.post('/candidaturas', { plantaoId });
+        toast.success('Candidatura enviada com sucesso!');
+        loadPlantoes();
+        loadStats();
+      } catch (err) {
+        toast.error(err.message || 'Erro ao enviar candidatura.');
+      }
+    }
+
+    document.getElementById('btn-buscar').addEventListener('click', () => {
+      const q = document.getElementById('search-input').value.trim();
+      loadPlantoes(q);
+    });
+
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('btn-buscar').click();
+      }
+    });
+
+    window.candidatar = candidatar;
+
+    loadStats();
+    loadPlantoes();
+  </script>
+</body>
+</html>

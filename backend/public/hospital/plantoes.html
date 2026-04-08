@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plantões — Portal Hospital | EncontraMed</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <a href="dashboard.html" class="sidebar-logo">
+        <div class="logo-icon">🏥</div>
+        <div class="logo-text">
+          <span class="encontra">Encontra</span><span class="med">Med</span>
+          <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-normal);color:var(--text-secondary);margin-top:2px;">Portal Hospital</div>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="plantoes.html" class="nav-item active">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Plantões</span>
+        </a>
+        <a href="escalas.html" class="nav-item">
+          <span class="nav-icon">🗓</span>
+          <span class="nav-label">Escalas</span>
+        </a>
+        <a href="candidaturas.html" class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">Candidaturas</span>
+        </a>
+        <a href="perfil.html" class="nav-item">
+          <span class="nav-icon">🏥</span>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <div class="avatar" id="user-avatar">H</div>
+          <div style="flex:1;overflow:hidden;">
+            <div class="user-name truncate" id="user-nome">Hospital</div>
+            <div class="user-role">Hospital</div>
+          </div>
+          <button id="logout-btn" class="btn btn-ghost btn-icon btn-sm" title="Sair" style="flex-shrink:0;">⏻</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+          <span class="topbar-title">Plantões</span>
+        </div>
+        <div class="topbar-right">
+          <select class="select-field" id="filter-status" style="width:auto;">
+            <option value="">Todos</option>
+            <option value="ABERTO">Aberto</option>
+            <option value="CONFIRMADO">Confirmado</option>
+            <option value="REALIZADO">Realizado</option>
+            <option value="CANCELADO">Cancelado</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="btn-novo-plantao">+ Novo Plantão</button>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div class="table-container">
+          <div class="table-scroll-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Especialidade</th>
+                  <th>Data Início</th>
+                  <th>Data Fim</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Candidatos</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="plantoes-tbody">
+                <tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Novo Plantão -->
+  <div class="modal-overlay" id="modal-plantao" style="display:none;">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Novo Plantão</h3>
+        <button class="modal-close-btn" id="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-plantao" novalidate>
+          <div class="form-grid">
+            <div class="form-group form-col-full">
+              <label class="form-label">Especialidade *</label>
+              <select class="select-field" id="p-especialidade" required>
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data Início *</label>
+              <input type="datetime-local" class="input-field" id="p-data-inicio" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data Fim *</label>
+              <input type="datetime-local" class="input-field" id="p-data-fim" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor Base (R$) *</label>
+              <input type="number" class="input-field" id="p-valor" min="0" step="0.01" placeholder="0,00" required />
+            </div>
+            <div class="form-group" style="justify-content:center;padding-top:var(--space-6);">
+              <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;">
+                <input type="checkbox" id="p-rqe" />
+                <span class="form-label" style="margin:0;">Exige RQE</span>
+              </label>
+            </div>
+            <div class="form-group form-col-full">
+              <label class="form-label">Observações</label>
+              <textarea class="textarea-field" id="p-obs" placeholder="Informações adicionais sobre o plantão..."></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-cancel-modal">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-plantao">Criar Plantão</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    'use strict';
+
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+      document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+    });
+
+    function statusBadge(s) {
+      const map = {
+        ABERTO: 'badge-aberto', CONFIRMADO: 'badge-confirmado',
+        REALIZADO: 'badge-realizado', CANCELADO: 'badge-cancelado',
+        CANDIDATADO: 'badge-candidatado', EXPIRADO: 'badge-expirado',
+      };
+      return `<span class="badge ${map[s] || 'badge-info'}">${s}</span>`;
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+
+    function fmtMoney(v) {
+      if (v == null) return '—';
+      return Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+    }
+
+    async function loadEspecialidades() {
+      try {
+        const data = await api.get('/especialidades');
+        const items = Array.isArray(data) ? data : (data.especialidades || []);
+        const sel = document.getElementById('p-especialidade');
+        items.forEach(e => {
+          const opt = document.createElement('option');
+          opt.value = e.id;
+          opt.textContent = e.nome;
+          sel.appendChild(opt);
+        });
+      } catch { /* silent */ }
+    }
+
+    async function loadPlantoes() {
+      const tbody = document.getElementById('plantoes-tbody');
+      const status = document.getElementById('filter-status').value;
+      const qs = status ? `?status=${status}` : '';
+      try {
+        const data = await api.get(`/plantoes/hospital${qs}`);
+        const items = Array.isArray(data) ? data : (data.plantoes || []);
+        if (!items.length) {
+          tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">Nenhum plantão encontrado</div><div class="empty-state-text">Clique em "Novo Plantão" para criar.</div></div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = items.map(p => `
+          <tr>
+            <td class="td-secondary">#${p.id}</td>
+            <td>${p.especialidade?.nome || p.especialidadeNome || '—'}</td>
+            <td>${fmtDate(p.dataInicio)}</td>
+            <td>${fmtDate(p.dataFim)}</td>
+            <td>${fmtMoney(p.valorBase)}</td>
+            <td>${statusBadge(p.status)}</td>
+            <td>${p._count?.candidaturas ?? p.totalCandidatos ?? 0}</td>
+            <td>
+              <div class="td-actions">
+                <a href="candidaturas.html?plantao=${p.id}" class="btn btn-ghost btn-xs">Candidatos</a>
+                ${p.status === 'ABERTO' ? `<button class="btn btn-danger btn-xs" onclick="cancelarPlantao(${p.id})">Cancelar</button>` : ''}
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:var(--space-8);">Erro ao carregar plantões.</td></tr>`;
+      }
+    }
+
+    async function cancelarPlantao(id) {
+      showConfirm('Deseja cancelar este plantão?', async () => {
+        try {
+          await api.put(`/plantoes/${id}/cancelar`);
+          toast.success('Plantão cancelado.');
+          loadPlantoes();
+        } catch (err) { toast.error(err.message); }
+      }, 'danger');
+    }
+
+    window.cancelarPlantao = cancelarPlantao;
+
+    document.getElementById('filter-status').addEventListener('change', loadPlantoes);
+
+    // Modal
+    const modal = document.getElementById('modal-plantao');
+    document.getElementById('btn-novo-plantao').addEventListener('click', () => {
+      modal.style.display = 'flex';
+    });
+    document.getElementById('modal-close').addEventListener('click', () => { modal.style.display = 'none'; });
+    document.getElementById('btn-cancel-modal').addEventListener('click', () => { modal.style.display = 'none'; });
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+
+    document.getElementById('btn-salvar-plantao').addEventListener('click', async () => {
+      const espId   = document.getElementById('p-especialidade').value;
+      const inicio  = document.getElementById('p-data-inicio').value;
+      const fim     = document.getElementById('p-data-fim').value;
+      const valor   = document.getElementById('p-valor').value;
+      const rqe     = document.getElementById('p-rqe').checked;
+      const obs     = document.getElementById('p-obs').value.trim();
+
+      if (!espId || !inicio || !fim || !valor) {
+        toast.error('Preencha todos os campos obrigatórios.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-salvar-plantao');
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+
+      try {
+        await api.post('/plantoes', {
+          especialidadeId: Number(espId),
+          dataInicio: new Date(inicio).toISOString(),
+          dataFim: new Date(fim).toISOString(),
+          valorBase: Number(valor),
+          exigeRqe: rqe,
+          observacoes: obs || undefined,
+        });
+        toast.success('Plantão criado com sucesso!');
+        modal.style.display = 'none';
+        document.getElementById('form-plantao').reset();
+        loadPlantoes();
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    });
+
+    loadEspecialidades();
+    loadPlantoes();
+  </script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil — EncontraMed Médico</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <a href="dashboard.html" class="sidebar-logo">
+        <div class="logo-icon">E</div>
+        <div class="logo-text">
+          <span class="encontra">Encontra</span><span class="med">Med</span>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Início</span>
+        </a>
+        <a href="meus-plantoes.html" class="nav-item">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Meus Plantões</span>
+        </a>
+        <a href="escalas.html" class="nav-item">
+          <span class="nav-icon">🗓</span>
+          <span class="nav-label">Escalas</span>
+        </a>
+        <a href="perfil.html" class="nav-item active">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-menu">
+          <div class="avatar" id="user-avatar">M</div>
+          <div class="user-info">
+            <div class="user-name" id="user-nome">Médico</div>
+            <div class="user-role">Portal Médico</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="logout-btn" style="width:100%;margin-top:var(--space-2);">
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+          <h1 class="topbar-title">Meu Perfil</h1>
+        </div>
+        <div class="topbar-right"></div>
+      </header>
+
+      <!-- Content -->
+      <div class="content-area">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);margin-bottom:var(--space-6);" class="perfil-grid">
+
+          <!-- Dados Pessoais -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Dados Pessoais</h2>
+            </div>
+            <form id="form-pessoal">
+              <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+                <div class="form-group">
+                  <label class="form-label" for="nome">Nome completo</label>
+                  <input type="text" id="nome" class="input-field" placeholder="Seu nome completo">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="email">E-mail</label>
+                  <input type="email" id="email" class="input-field" placeholder="seu@email.com" disabled>
+                  <span class="form-hint">O e-mail não pode ser alterado aqui.</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="telefone">Telefone</label>
+                  <input type="tel" id="telefone" class="input-field" placeholder="(11) 99999-9999">
+                </div>
+                <div style="display:flex;justify-content:flex-end;">
+                  <button type="submit" class="btn btn-primary" id="btn-salvar-pessoal">Salvar Dados Pessoais</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Dados Profissionais -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Dados Profissionais</h2>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+              <div class="form-group">
+                <label class="form-label" for="crm">CRM</label>
+                <input type="text" id="crm" class="input-field" placeholder="000000" disabled>
+                <span class="form-hint">O CRM é verificado e não pode ser alterado aqui.</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="crm-uf">CRM UF</label>
+                <input type="text" id="crm-uf" class="input-field" placeholder="SP" disabled>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="especialidades">Especialidades</label>
+                <input type="text" id="especialidades" class="input-field" placeholder="Carregando..." disabled>
+                <span class="form-hint">Especialidades registradas no seu perfil.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Documentos -->
+        <div class="table-container">
+          <div class="table-toolbar">
+            <div class="table-toolbar-left">
+              <span class="card-title">📄 Documentos</span>
+            </div>
+            <div class="table-toolbar-right">
+              <span id="docs-total" class="form-hint"></span>
+            </div>
+          </div>
+          <div class="table-scroll-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Status</th>
+                  <th>Data de Envio</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="docs-tbody">
+                <tr>
+                  <td colspan="4">
+                    <div class="loading-overlay">
+                      <div class="spinner"></div>
+                      <span class="loading-text">Carregando documentos...</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    'use strict';
+
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+      document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+    });
+
+    function fmtData(str) {
+      if (!str) return '—';
+      try { return new Date(str).toLocaleDateString('pt-BR'); }
+      catch { return str; }
+    }
+
+    function docStatusBadge(status) {
+      const map = {
+        PENDENTE: 'badge-warning',
+        APROVADO: 'badge-success',
+        APROVADA: 'badge-success',
+        REJEITADO: 'badge-danger',
+        REJEITADA: 'badge-danger',
+        VERIFICADO: 'badge-verificado',
+        ENVIADO: 'badge-info',
+      };
+      const cls = map[status] || 'badge-nao-verificado';
+      return `<span class="badge ${cls}">${status || 'PENDENTE'}</span>`;
+    }
+
+    async function loadPerfil() {
+      try {
+        const data = await api.get('/medicos/me');
+        const medico = data.medico || data;
+
+        document.getElementById('nome').value = medico.nomeCompleto || medico.nome || '';
+        document.getElementById('email').value = medico.email || '';
+        document.getElementById('telefone').value = medico.telefone || '';
+        document.getElementById('crm').value = medico.crm || '';
+        document.getElementById('crm-uf').value = medico.crmUf || medico.uf || '';
+
+        const especialidades = medico.especialidades || medico.especialidade || [];
+        const espStr = Array.isArray(especialidades)
+          ? especialidades.map(e => e.nome || e).join(', ')
+          : String(especialidades || '—');
+        document.getElementById('especialidades').value = espStr || '—';
+      } catch (err) {
+        toast.error('Erro ao carregar perfil: ' + err.message);
+      }
+    }
+
+    async function loadDocumentos() {
+      const tbody = document.getElementById('docs-tbody');
+      try {
+        const data = await api.get('/documentos/meus');
+        const list = Array.isArray(data) ? data : (data.documentos || data.data || []);
+
+        document.getElementById('docs-total').textContent = `${list.length} documento${list.length !== 1 ? 's' : ''}`;
+
+        if (!list.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4">
+                <div class="empty-state">
+                  <div class="empty-state-icon">📄</div>
+                  <div class="empty-state-title">Nenhum documento</div>
+                  <div class="empty-state-text">Você não enviou nenhum documento ainda.</div>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = list.map(doc => {
+          const isAprovado = ['APROVADO', 'APROVADA', 'VERIFICADO'].includes(doc.status);
+          return `
+            <tr>
+              <td>${doc.tipo || doc.tipoDocumento || '—'}</td>
+              <td>${docStatusBadge(doc.status)}</td>
+              <td class="td-secondary">${fmtData(doc.createdAt || doc.dataEnvio)}</td>
+              <td>
+                <div class="td-actions">
+                  ${doc.url || doc.arquivo ? `<a href="${doc.url || doc.arquivo}" target="_blank" class="btn btn-ghost btn-sm">Ver</a>` : ''}
+                  ${!isAprovado ? `<button class="btn btn-primary btn-sm" onclick="enviarDocumento(${doc.id}, '${doc.tipo}')">Enviar</button>` : ''}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4">
+              <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <div class="empty-state-title">Erro ao carregar documentos</div>
+                <div class="empty-state-text">${err.message}</div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function enviarDocumento(id, tipo) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*,.pdf';
+      input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('arquivo', file);
+        formData.append('tipo', tipo);
+        try {
+          await api.upload(`/documentos/${id}`, formData);
+          toast.success('Documento enviado com sucesso!');
+          loadDocumentos();
+        } catch (err) {
+          toast.error(err.message || 'Erro ao enviar documento.');
+        }
+      };
+      input.click();
+    }
+
+    document.getElementById('form-pessoal').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-salvar-pessoal');
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+
+      try {
+        await api.put('/medicos/me', {
+          nomeCompleto: document.getElementById('nome').value.trim(),
+          telefone: document.getElementById('telefone').value.trim(),
+        });
+        toast.success('Dados pessoais salvos com sucesso!');
+
+        // Update cached user
+        const user = JSON.parse(localStorage.getItem('medico_user') || '{}');
+        user.nomeCompleto = document.getElementById('nome').value.trim();
+        localStorage.setItem('medico_user', JSON.stringify(user));
+        document.getElementById('user-nome').textContent = user.nomeCompleto || 'Médico';
+        const avatar = document.getElementById('user-avatar');
+        if (avatar && user.nomeCompleto) {
+          avatar.textContent = user.nomeCompleto.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+        }
+      } catch (err) {
+        toast.error(err.message || 'Erro ao salvar dados.');
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    });
+
+    // Responsive: collapse grid on small screens
+    function adjustGrid() {
+      const grid = document.querySelector('.perfil-grid');
+      if (!grid) return;
+      if (window.innerWidth < 900) {
+        grid.style.gridTemplateColumns = '1fr';
+      } else {
+        grid.style.gridTemplateColumns = '1fr 1fr';
+      }
+    }
+    window.addEventListener('resize', adjustGrid);
+    adjustGrid();
+
+    window.enviarDocumento = enviarDocumento;
+
+    loadPerfil();
+    loadDocumentos();
+  </script>
+</body>
+</html>

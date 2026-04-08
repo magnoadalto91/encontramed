@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Escalas — Portal Hospital | EncontraMed</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <a href="dashboard.html" class="sidebar-logo">
+        <div class="logo-icon">🏥</div>
+        <div class="logo-text">
+          <span class="encontra">Encontra</span><span class="med">Med</span>
+          <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-normal);color:var(--text-secondary);margin-top:2px;">Portal Hospital</div>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="plantoes.html" class="nav-item">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Plantões</span>
+        </a>
+        <a href="escalas.html" class="nav-item active">
+          <span class="nav-icon">🗓</span>
+          <span class="nav-label">Escalas</span>
+        </a>
+        <a href="candidaturas.html" class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">Candidaturas</span>
+        </a>
+        <a href="perfil.html" class="nav-item">
+          <span class="nav-icon">🏥</span>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <div class="avatar" id="user-avatar">H</div>
+          <div style="flex:1;overflow:hidden;">
+            <div class="user-name truncate" id="user-nome">Hospital</div>
+            <div class="user-role">Hospital</div>
+          </div>
+          <button id="logout-btn" class="btn btn-ghost btn-icon btn-sm" title="Sair" style="flex-shrink:0;">⏻</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+          <span class="topbar-title">Escalas</span>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" id="btn-nova-escala">+ Nova Escala</button>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div class="table-container">
+          <div class="table-scroll-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Especialidade</th>
+                  <th>Período</th>
+                  <th>Valor Base</th>
+                  <th>Plantões Gerados</th>
+                  <th>Ativo</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="escalas-tbody">
+                <tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nova Escala -->
+  <div class="modal-overlay" id="modal-escala" style="display:none;">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Nova Escala</h3>
+        <button class="modal-close-btn" id="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-escala" novalidate>
+          <div class="form-grid">
+            <div class="form-group form-col-full">
+              <label class="form-label">Nome *</label>
+              <input type="text" class="input-field" id="e-nome" placeholder="Ex: Escala UTI Noturna" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo *</label>
+              <select class="select-field" id="e-tipo" required>
+                <option value="">Selecione...</option>
+                <option value="SEMANAL">Semanal</option>
+                <option value="QUINZENAL">Quinzenal</option>
+                <option value="MENSAL">Mensal</option>
+                <option value="PERSONALIZADO">Personalizado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Especialidade *</label>
+              <select class="select-field" id="e-especialidade" required>
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data Início *</label>
+              <input type="date" class="input-field" id="e-data-inicio" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data Fim (opcional)</label>
+              <input type="date" class="input-field" id="e-data-fim" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor Base (R$) *</label>
+              <input type="number" class="input-field" id="e-valor" min="0" step="0.01" placeholder="0,00" required />
+            </div>
+            <div class="form-group" style="justify-content:center;padding-top:var(--space-6);">
+              <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;">
+                <input type="checkbox" id="e-rqe" />
+                <span class="form-label" style="margin:0;">Exige RQE</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hora Início *</label>
+              <input type="time" class="input-field" id="e-hora-inicio" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hora Fim *</label>
+              <input type="time" class="input-field" id="e-hora-fim" required />
+            </div>
+
+            <!-- Dias da semana (SEMANAL/QUINZENAL) -->
+            <div class="form-group form-col-full" id="grupo-dias" style="display:none;">
+              <label class="form-label">Dias da Semana *</label>
+              <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:var(--space-1);cursor:pointer;"><input type="checkbox" class="dia-check" value="0" /> Dom</label>
+                <label style="display:flex;align-items:center;gap:var(--space-1);cursor:pointer;"><input type="checkbox" class="dia-check" value="1" /> Seg</label>
+                <label style="display:flex;align-items:center;gap:var(--space-1);cursor:pointer;"><input type="checkbox" class="dia-check" value="2" /> Ter</label>
+                <label style="display:flex;align-items:center;gap:var(--space-1);cursor:pointer;"><input type="checkbox" class="dia-check" value="3" /> Qua</label>
+                <label style="display:flex;align-items:center;gap:var(--space-1);cursor:pointer;"><input type="checkbox" class="dia-check" value="4" /> Qui</label>
+                <label style="display:flex;align-items:center;gap:var(--space-1);cursor:pointer;"><input type="checkbox" class="dia-check" value="5" /> Sex</label>
+                <label style="display:flex;align-items:center;gap:var(--space-1);cursor:pointer;"><input type="checkbox" class="dia-check" value="6" /> Sáb</label>
+              </div>
+            </div>
+
+            <!-- Dia do mês (MENSAL) -->
+            <div class="form-group form-col-full" id="grupo-dia-mes" style="display:none;">
+              <label class="form-label">Dia do Mês *</label>
+              <input type="number" class="input-field" id="e-dia-mes" min="1" max="31" placeholder="1–31" style="max-width:120px;" />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-cancel-modal">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-escala">Criar Escala</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    'use strict';
+
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+      document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+    });
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('pt-BR');
+    }
+
+    function fmtMoney(v) {
+      if (v == null) return '—';
+      return Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+    }
+
+    async function loadEspecialidades() {
+      try {
+        const data = await api.get('/especialidades');
+        const items = Array.isArray(data) ? data : (data.especialidades || []);
+        const sel = document.getElementById('e-especialidade');
+        items.forEach(e => {
+          const opt = document.createElement('option');
+          opt.value = e.id;
+          opt.textContent = e.nome;
+          sel.appendChild(opt);
+        });
+      } catch { /* silent */ }
+    }
+
+    async function loadEscalas() {
+      const tbody = document.getElementById('escalas-tbody');
+      try {
+        const data = await api.get('/escalas');
+        const items = Array.isArray(data) ? data : (data.escalas || []);
+        if (!items.length) {
+          tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">🗓</div><div class="empty-state-title">Nenhuma escala criada</div><div class="empty-state-text">Clique em "Nova Escala" para criar escalas recorrentes.</div></div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = items.map(e => `
+          <tr>
+            <td>${e.nome || '—'}</td>
+            <td><span class="badge badge-info">${e.tipo || '—'}</span></td>
+            <td>${e.especialidade?.nome || e.especialidadeNome || '—'}</td>
+            <td class="td-secondary">${fmtDate(e.dataInicio)}${e.dataFim ? ' → ' + fmtDate(e.dataFim) : ''}</td>
+            <td>${fmtMoney(e.valorBase)}</td>
+            <td>${e._count?.plantoes ?? e.totalPlantoes ?? 0}</td>
+            <td>${e.ativo ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-cancelado">Pausado</span>'}</td>
+            <td>
+              <div class="td-actions">
+                ${e.ativo
+                  ? `<button class="btn btn-warning btn-xs" onclick="pausarEscala(${e.id})">Pausar</button>`
+                  : `<button class="btn btn-success btn-xs" onclick="reativarEscala(${e.id})">Reativar</button>`
+                }
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:var(--space-8);">Erro ao carregar escalas.</td></tr>`;
+      }
+    }
+
+    async function pausarEscala(id) {
+      try {
+        await api.post(`/escalas/${id}/pausar`);
+        toast.success('Escala pausada.');
+        loadEscalas();
+      } catch (err) { toast.error(err.message); }
+    }
+
+    async function reativarEscala(id) {
+      try {
+        await api.post(`/escalas/${id}/reativar`);
+        toast.success('Escala reativada.');
+        loadEscalas();
+      } catch (err) { toast.error(err.message); }
+    }
+
+    window.pausarEscala = pausarEscala;
+    window.reativarEscala = reativarEscala;
+
+    // Modal
+    const modal = document.getElementById('modal-escala');
+    document.getElementById('btn-nova-escala').addEventListener('click', () => { modal.style.display = 'flex'; });
+    document.getElementById('modal-close').addEventListener('click', () => { modal.style.display = 'none'; });
+    document.getElementById('btn-cancel-modal').addEventListener('click', () => { modal.style.display = 'none'; });
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+
+    document.getElementById('e-tipo').addEventListener('change', function () {
+      const tipo = this.value;
+      const grupoDias   = document.getElementById('grupo-dias');
+      const grupoDiaMes = document.getElementById('grupo-dia-mes');
+      grupoDias.style.display   = (tipo === 'SEMANAL' || tipo === 'QUINZENAL') ? 'flex' : 'none';
+      grupoDiaMes.style.display = tipo === 'MENSAL' ? 'flex' : 'none';
+    });
+
+    document.getElementById('btn-salvar-escala').addEventListener('click', async () => {
+      const nome     = document.getElementById('e-nome').value.trim();
+      const tipo     = document.getElementById('e-tipo').value;
+      const espId    = document.getElementById('e-especialidade').value;
+      const inicio   = document.getElementById('e-data-inicio').value;
+      const fim      = document.getElementById('e-data-fim').value;
+      const valor    = document.getElementById('e-valor').value;
+      const rqe      = document.getElementById('e-rqe').checked;
+      const hInicio  = document.getElementById('e-hora-inicio').value;
+      const hFim     = document.getElementById('e-hora-fim').value;
+
+      if (!nome || !tipo || !espId || !inicio || !valor || !hInicio || !hFim) {
+        toast.error('Preencha todos os campos obrigatórios.');
+        return;
+      }
+
+      const configuracao = { horaInicio: hInicio, horaFim: hFim };
+
+      if (tipo === 'SEMANAL' || tipo === 'QUINZENAL') {
+        const dias = [...document.querySelectorAll('.dia-check:checked')].map(c => Number(c.value));
+        if (!dias.length) { toast.error('Selecione ao menos um dia da semana.'); return; }
+        configuracao.diasSemana = dias;
+      }
+
+      if (tipo === 'MENSAL') {
+        const diaMes = document.getElementById('e-dia-mes').value;
+        if (!diaMes) { toast.error('Informe o dia do mês.'); return; }
+        configuracao.diaMes = Number(diaMes);
+      }
+
+      const btn = document.getElementById('btn-salvar-escala');
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+
+      try {
+        await api.post('/escalas', {
+          nome,
+          tipo,
+          especialidadeId: Number(espId),
+          dataInicio: inicio,
+          dataFim: fim || undefined,
+          valorBase: Number(valor),
+          exigeRqe: rqe,
+          configuracao,
+        });
+        toast.success('Escala criada com sucesso!');
+        modal.style.display = 'none';
+        document.getElementById('form-escala').reset();
+        document.getElementById('grupo-dias').style.display = 'none';
+        document.getElementById('grupo-dia-mes').style.display = 'none';
+        loadEscalas();
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    });
+
+    loadEspecialidades();
+    loadEscalas();
+  </script>
+</body>
+</html>
