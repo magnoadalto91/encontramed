@@ -1,0 +1,506 @@
+// EncontraMed - Prisma Schema
+// PostgreSQL database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MEDICO
+  HOSPITAL
+  ADMIN
+  SUPORTE
+}
+
+enum CrmStatus {
+  ATIVO
+  INATIVO
+  SUSPENSO
+  CANCELADO
+  NAO_VERIFICADO
+}
+
+enum TipoPlantao {
+  AVULSO
+  ESCALA
+}
+
+enum StatusPlantao {
+  ABERTO
+  CANDIDATADO
+  CONFIRMADO
+  REALIZADO
+  PAGO
+  CANCELADO
+  EXPIRADO
+}
+
+enum StatusCandidatura {
+  PENDENTE
+  ACEITA
+  REJEITADA
+  CANCELADA
+  CONTRAPROPOSTA
+}
+
+enum TipoDocumento {
+  CARTEIRA_CRM
+  DIPLOMA
+  RQE_CERTIFICADO
+  CONTRATO_PJ
+  OUTROS
+}
+
+enum StatusDocumento {
+  PENDENTE
+  PROCESSANDO
+  VALIDADO
+  REJEITADO
+}
+
+enum StatusContrato {
+  PENDENTE_ASSINATURA
+  ASSINADO
+  EXPIRADO
+  CANCELADO
+}
+
+enum StatusNFe {
+  PENDENTE
+  EMITIDA
+  CANCELADA
+  ERRO
+}
+
+enum TipoEscala {
+  SEMANAL
+  QUINZENAL
+  MENSAL
+  PERSONALIZADO
+}
+
+enum StatusTroca {
+  PENDENTE
+  APROVADA
+  REJEITADA
+  CANCELADA
+}
+
+model usuarios {
+  id                       Int       @id @default(autoincrement())
+  email                    String    @unique
+  senhaHash                String
+  role                     Role      @default(MEDICO)
+  nomeCompleto             String
+  telefone                 String?
+  ativo                    Boolean   @default(true)
+  emailVerificado          Boolean   @default(false)
+  tokenVerificacao         String?   @unique
+  tokenRecuperacao         String?   @unique
+  tokenRecuperacaoExpiry   DateTime?
+  pushToken                String?
+  onboardingDone           Boolean   @default(false)
+  criadoEm                 DateTime  @default(now())
+  atualizadoEm             DateTime  @updatedAt
+
+  sessoes                  sessoes[]
+  medico                   medicos?
+  hospital                 hospitais?
+  notificacoes             notificacoes[]
+  chamadosAbertos          chamados[]            @relation("UsuarioChamados")
+  chamadosAtribuidos       chamados[]            @relation("SuporteChamados")
+  mensagensChamado         chamado_mensagens[]
+  avaliacoesDadas          avaliacoes[]          @relation("AvaliadorAvaliacoes")
+  documentosRevisados      documentos[]          @relation("RevisorDocumentos")
+}
+
+model sessoes {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  sessionId   String    @unique @default(uuid())
+  plataforma  String
+  ativo       Boolean   @default(true)
+  ultimoUso   DateTime  @default(now())
+  inicio      DateTime  @default(now())
+  fim         DateTime?
+  userAgent   String?
+  ipAddress   String?
+
+  user        usuarios  @relation(fields: [userId], references: [id])
+}
+
+model medicos {
+  id                    Int       @id @default(autoincrement())
+  usuarioId             Int       @unique
+  cpf                   String?   @unique
+  dataNascimento        DateTime?
+  crm                   String?
+  crmUf                 String?
+  crmStatus             CrmStatus @default(NAO_VERIFICADO)
+  crmUltimaVerif        DateTime?
+  enderecoLogradouro    String?
+  enderecoCidade        String?
+  enderecoEstado        String?
+  enderecoCep           String?
+  latitude              Float?
+  longitude             Float?
+  cnpj                  String?
+  razaoSocial           String?
+  fotoPerfil            String?
+  curriculo             String?
+  resumo                String?
+  valorHoraBase         Decimal?  @db.Decimal(10, 2)
+  primeiroContratoAssinado Boolean @default(false)
+  criadoEm              DateTime  @default(now())
+  atualizadoEm          DateTime  @updatedAt
+
+  usuario               usuarios            @relation(fields: [usuarioId], references: [id])
+  especialidades        medico_especialidades[]
+  rqes                  rqes[]
+  candidaturas          candidaturas[]
+  bids                  bids[]
+  plantoes              plantoes[]
+  trocasSolicitadas     trocas[]            @relation("SolicitanteTrocas")
+  trocasRecebidas       trocas[]            @relation("DestinatarioTrocas")
+  documentos            documentos[]
+  contratos             contratos[]
+  transacoes            transacoes[]
+  avaliacoesRecebidas   avaliacoes[]        @relation("MedicoAvaliacoes")
+}
+
+model especialidades {
+  id          Int     @id @default(autoincrement())
+  nome        String  @unique
+  codigo      String  @unique
+  descricao   String?
+
+  medicos     medico_especialidades[]
+  rqes        rqes[]
+  plantoes    plantoes[]
+  escalas     escalas[]
+}
+
+model rqes {
+  id              Int            @id @default(autoincrement())
+  medicoId        Int
+  especialidadeId Int
+  numeroRQE       String
+  validado        Boolean        @default(false)
+  validadoEm      DateTime?
+  criadoEm        DateTime       @default(now())
+
+  medico          medicos        @relation(fields: [medicoId], references: [id])
+  especialidade   especialidades @relation(fields: [especialidadeId], references: [id])
+}
+
+model medico_especialidades {
+  medicoId        Int
+  especialidadeId Int
+  rqeNumero       String?
+  rqeValidado     Boolean        @default(false)
+  principal       Boolean        @default(false)
+  criadoEm        DateTime       @default(now())
+
+  medico          medicos        @relation(fields: [medicoId], references: [id])
+  especialidade   especialidades @relation(fields: [especialidadeId], references: [id])
+
+  @@id([medicoId, especialidadeId])
+}
+
+model hospitais {
+  id                   Int       @id @default(autoincrement())
+  usuarioId            Int       @unique
+  cnpj                 String    @unique
+  razaoSocial          String
+  nomeFantasia         String?
+  codigoCNES           String?   @unique
+  tipoEstabelecimento  String?
+  enderecoLogradouro   String?
+  enderecoNumero       String?
+  enderecoBairro       String?
+  enderecoCidade       String?
+  enderecoEstado       String?
+  enderecoCep          String?
+  latitude             Float?
+  longitude            Float?
+  logoUrl              String?
+  descricao            String?
+  responsavelNome      String?
+  responsavelCRM       String?
+  telefoneContato      String?
+  verificado           Boolean   @default(false)
+  criadoEm             DateTime  @default(now())
+  atualizadoEm         DateTime  @updatedAt
+
+  usuario              usuarios   @relation(fields: [usuarioId], references: [id])
+  plantoes             plantoes[]
+  escalas              escalas[]
+  trocas               trocas[]
+  contratos            contratos[]
+  transacoes           transacoes[]
+  avaliacoesRecebidas  avaliacoes[] @relation("HospitalAvaliacoes")
+}
+
+model plantoes {
+  id                Int            @id @default(autoincrement())
+  hospitalId        Int
+  especialidadeId   Int
+  medicoId          Int?
+  escalaId          Int?
+  tipo              TipoPlantao    @default(AVULSO)
+  status            StatusPlantao  @default(ABERTO)
+  dataInicio        DateTime
+  dataFim           DateTime
+  duracaoHoras      Float
+  latitude          Float?
+  longitude         Float?
+  valorBase         Decimal        @db.Decimal(10, 2)
+  valorFinal        Decimal?       @db.Decimal(10, 2)
+  permiteBid        Boolean        @default(false)
+  valorMinimoBid    Decimal?       @db.Decimal(10, 2)
+  prazoConfirmacao  DateTime?
+  exigeRQE          Boolean        @default(false)
+  observacoes       String?
+  descricao         String?
+  urgente           Boolean        @default(false)
+  notificadoRaio    Int            @default(0)
+  criadoEm          DateTime       @default(now())
+  atualizadoEm      DateTime       @updatedAt
+  realizadoEm       DateTime?
+  pagoEm            DateTime?
+
+  hospital          hospitais      @relation(fields: [hospitalId], references: [id])
+  especialidade     especialidades @relation(fields: [especialidadeId], references: [id])
+  medico            medicos?       @relation(fields: [medicoId], references: [id])
+  escala            escalas?       @relation(fields: [escalaId], references: [id])
+  candidaturas      candidaturas[]
+  bids              bids[]
+  trocasOrigem      trocas[]       @relation("PlantaoOrigem")
+  trocasDestino     trocas[]       @relation("PlantaoDestino")
+  contrato          contratos?
+  transacao         transacoes?
+  avaliacao         avaliacoes?
+}
+
+model candidaturas {
+  id            Int               @id @default(autoincrement())
+  plantaoId     Int
+  medicoId      Int
+  status        StatusCandidatura @default(PENDENTE)
+  mensagem      String?
+  criadoEm      DateTime          @default(now())
+  atualizadoEm  DateTime          @updatedAt
+  respondidoEm  DateTime?
+
+  plantao       plantoes          @relation(fields: [plantaoId], references: [id])
+  medico        medicos           @relation(fields: [medicoId], references: [id])
+  bid           bids?
+
+  @@unique([plantaoId, medicoId])
+}
+
+model bids {
+  id              Int          @id @default(autoincrement())
+  plantaoId       Int
+  medicoId        Int
+  candidaturaId   Int?         @unique
+  valorProposto   Decimal      @db.Decimal(10, 2)
+  valorAnterior   Decimal?     @db.Decimal(10, 2)
+  mensagem        String?
+  expiradoEm      DateTime?
+  aceitoEm        DateTime?
+  rejeitadoEm     DateTime?
+  criadoEm        DateTime     @default(now())
+
+  plantao         plantoes     @relation(fields: [plantaoId], references: [id])
+  medico          medicos      @relation(fields: [medicoId], references: [id])
+  candidatura     candidaturas? @relation(fields: [candidaturaId], references: [id])
+}
+
+model escalas {
+  id              Int        @id @default(autoincrement())
+  hospitalId      Int
+  especialidadeId Int
+  nome            String
+  tipo            TipoEscala
+  ativo           Boolean    @default(true)
+  configuracao    Json
+  dataInicio      DateTime
+  dataFim         DateTime?
+  valorBase       Decimal    @db.Decimal(10, 2)
+  exigeRQE        Boolean    @default(false)
+  geradoAte       DateTime?
+  criadoEm        DateTime   @default(now())
+  atualizadoEm    DateTime   @updatedAt
+
+  hospital        hospitais      @relation(fields: [hospitalId], references: [id])
+  especialidade   especialidades @relation(fields: [especialidadeId], references: [id])
+  plantoes        plantoes[]
+}
+
+model trocas {
+  id                    Int         @id @default(autoincrement())
+  plantaoOrigemId       Int
+  plantaoDestinoId      Int?
+  solicitanteId         Int
+  destinatarioId        Int?
+  hospitalId            Int
+  status                StatusTroca @default(PENDENTE)
+  tipo                  String      @default("TROCA")
+  valorCompensacao      Decimal?    @db.Decimal(10, 2)
+  mensagem              String?
+  motivoRejeicao        String?
+  aprovadoPorHospital   Boolean?
+  criadoEm              DateTime    @default(now())
+  atualizadoEm          DateTime    @updatedAt
+  resolvidoEm           DateTime?
+
+  plantaoOrigem         plantoes    @relation("PlantaoOrigem", fields: [plantaoOrigemId], references: [id])
+  plantaoDestino        plantoes?   @relation("PlantaoDestino", fields: [plantaoDestinoId], references: [id])
+  solicitante           medicos     @relation("SolicitanteTrocas", fields: [solicitanteId], references: [id])
+  destinatario          medicos?    @relation("DestinatarioTrocas", fields: [destinatarioId], references: [id])
+  hospital              hospitais   @relation(fields: [hospitalId], references: [id])
+}
+
+model documentos {
+  id              Int             @id @default(autoincrement())
+  medicoId        Int
+  tipo            TipoDocumento
+  status          StatusDocumento @default(PENDENTE)
+  nomeArquivo     String
+  urlR2           String
+  urlPublica      String?
+  mimeType        String
+  tamanhoBytes    Int
+  ocrTexto        String?
+  ocrDadosJson    Json?
+  revisorId       Int?
+  motivoRejeicao  String?
+  criadoEm        DateTime        @default(now())
+  atualizadoEm    DateTime        @updatedAt
+  validadoEm      DateTime?
+
+  medico          medicos         @relation(fields: [medicoId], references: [id])
+  revisor         usuarios?       @relation("RevisorDocumentos", fields: [revisorId], references: [id])
+}
+
+model contratos {
+  id                    Int            @id @default(autoincrement())
+  medicoId              Int
+  hospitalId            Int
+  plantaoId             Int?           @unique
+  clicksignDocId        String?        @unique
+  clicksignSignUrl      String?
+  clicksignWebhookKey   String?
+  status                StatusContrato @default(PENDENTE_ASSINATURA)
+  templateVersao        String         @default("1.0")
+  conteudoJson          Json?
+  urlAssinado           String?
+  criadoEm              DateTime       @default(now())
+  atualizadoEm          DateTime       @updatedAt
+  assinadoEm            DateTime?
+
+  medico                medicos        @relation(fields: [medicoId], references: [id])
+  hospital              hospitais      @relation(fields: [hospitalId], references: [id])
+  plantao               plantoes?      @relation(fields: [plantaoId], references: [id])
+}
+
+model transacoes {
+  id               Int       @id @default(autoincrement())
+  plantaoId        Int?      @unique
+  medicoId         Int
+  hospitalId       Int
+  valorBruto       Decimal   @db.Decimal(10, 2)
+  valorTaxaPlat    Decimal   @db.Decimal(10, 2)
+  valorLiquido     Decimal   @db.Decimal(10, 2)
+  nfeStatus        StatusNFe @default(PENDENTE)
+  nfeNumero        String?
+  nfeSerie         String?
+  nfeChave         String?
+  nfeUrlPdf        String?
+  nfeUrlXml        String?
+  nfeEmitidaEm     DateTime?
+  nfeJson          Json?
+  pagoEm           DateTime?
+  metodoPagamento  String?
+  comprovante      String?
+  observacoes      String?
+  criadoEm         DateTime  @default(now())
+  atualizadoEm     DateTime  @updatedAt
+
+  plantao          plantoes?  @relation(fields: [plantaoId], references: [id])
+  medico           medicos    @relation(fields: [medicoId], references: [id])
+  hospital         hospitais  @relation(fields: [hospitalId], references: [id])
+}
+
+model notificacoes {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  titulo      String
+  corpo       String
+  tipo        String
+  lida        Boolean  @default(false)
+  dadosJson   Json?
+  pushEnviado Boolean  @default(false)
+  pushTicket  String?
+  criadoEm    DateTime @default(now())
+
+  user        usuarios @relation(fields: [userId], references: [id])
+}
+
+model avaliacoes {
+  id          Int      @id @default(autoincrement())
+  plantaoId   Int      @unique
+  avaliadorId Int
+  medicoId    Int?
+  hospitalId  Int?
+  nota        Int
+  comentario  String?
+  criadoEm    DateTime @default(now())
+
+  plantao     plantoes  @relation(fields: [plantaoId], references: [id])
+  avaliador   usuarios  @relation("AvaliadorAvaliacoes", fields: [avaliadorId], references: [id])
+  medico      medicos?  @relation("MedicoAvaliacoes", fields: [medicoId], references: [id])
+  hospital    hospitais? @relation("HospitalAvaliacoes", fields: [hospitalId], references: [id])
+}
+
+model chamados {
+  id              Int       @id @default(autoincrement())
+  usuarioId       Int
+  suporteId       Int?
+  titulo          String
+  descricao       String
+  status          String    @default("ABERTO")
+  prioridade      String    @default("NORMAL")
+  logDiagnostico  Json?
+  criadoEm        DateTime  @default(now())
+  atualizadoEm    DateTime  @updatedAt
+  resolvidoEm     DateTime?
+
+  usuario         usuarios  @relation("UsuarioChamados", fields: [usuarioId], references: [id])
+  suporte         usuarios? @relation("SuporteChamados", fields: [suporteId], references: [id])
+  mensagens       chamado_mensagens[]
+}
+
+model chamado_mensagens {
+  id        Int      @id @default(autoincrement())
+  chamadoId Int
+  autorId   Int
+  texto     String
+  criadoEm  DateTime @default(now())
+
+  chamado   chamados @relation(fields: [chamadoId], references: [id])
+  autor     usuarios @relation(fields: [autorId], references: [id])
+}
+
+model configuracoes {
+  chave        String   @id
+  valor        String
+  descricao    String?
+  atualizadoEm DateTime @updatedAt
+}

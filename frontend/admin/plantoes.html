@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plantões — EncontraMed Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/variables.css"><link rel="stylesheet" href="css/reset.css"><link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header"><div class="logo-text"><span class="logo-encontra">Encontra</span><span class="logo-med">Med</span></div><div class="logo-tagline">Admin Panel</div></div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="medicos.html" class="nav-item"><span class="nav-icon">👨‍⚕️</span><span class="nav-label">Médicos</span></a>
+      <a href="hospitais.html" class="nav-item"><span class="nav-icon">🏥</span><span class="nav-label">Hospitais</span></a>
+      <a href="plantoes.html" class="nav-item active"><span class="nav-icon">📅</span><span class="nav-label">Plantões</span></a>
+      <a href="escalas.html" class="nav-item"><span class="nav-icon">🗓</span><span class="nav-label">Escalas</span></a>
+      <a href="documentos.html" class="nav-item"><span class="nav-icon">📄</span><span class="nav-label">Documentos</span></a>
+      <a href="financeiro.html" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Financeiro</span></a>
+      <a href="chamados.html" class="nav-item"><span class="nav-icon">🎧</span><span class="nav-label">Chamados</span></a>
+      <a href="config.html" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="avatar" id="user-avatar">A</div><div class="sidebar-user-info"><div class="sidebar-user-name" id="user-nome">Admin</div><div id="user-role" class="sidebar-user-role"></div></div></div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">⬅ Sair</button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left"><button class="sidebar-toggle" id="sidebar-toggle">☰</button><h1 class="page-title">Plantões</h1></div>
+      <div class="topbar-right">
+        <select id="filter-status" class="select-field select-sm" onchange="loadPlantoes()">
+          <option value="">Todos os status</option>
+          <option value="ABERTO">Aberto</option><option value="CANDIDATADO">Candidatado</option>
+          <option value="CONFIRMADO">Confirmado</option><option value="REALIZADO">Realizado</option>
+          <option value="PAGO">Pago</option><option value="CANCELADO">Cancelado</option><option value="EXPIRADO">Expirado</option>
+        </select>
+      </div>
+    </div>
+    <div class="page-content">
+      <!-- Status summary -->
+      <div id="status-summary" class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); margin-bottom:24px;"></div>
+      <div class="card">
+        <div class="card-body p-0">
+          <div class="table-container">
+            <table><thead><tr><th>Hospital</th><th>Especialidade</th><th>Data Início</th><th>Duração</th><th>Médico</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
+            <tbody id="plantoes-tbody"><tr><td colspan="8" class="text-center text-muted">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/api.js"></script><script src="js/auth.js"></script><script src="js/toast.js"></script><script src="js/modal.js"></script>
+<script>
+document.getElementById('sidebar-toggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+
+const STATUS_BADGE = { ABERTO:'badge-accent', CANDIDATADO:'badge-primary', CONFIRMADO:'badge-success', REALIZADO:'badge-purple', PAGO:'badge-green', CANCELADO:'badge-danger', EXPIRADO:'badge-gray' };
+let currentPage = 1;
+
+async function loadPlantoes(page = 1) {
+  currentPage = page;
+  const status = document.getElementById('filter-status').value;
+  const params = new URLSearchParams({ page, limit: 20, ...(status && {status}) });
+  const tbody = document.getElementById('plantoes-tbody');
+
+  try {
+    const data = await api.get(`/plantoes/disponiveis?${params}&includeAll=true`);
+    const plantoes = data.plantoes || [];
+    if (!plantoes.length) {
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📅</div><div>Nenhum plantão encontrado</div></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = plantoes.map(p => `<tr>
+      <td><div class="fw-500 text-sm">${p.hospital?.nomeFantasia || p.hospital?.razaoSocial || '—'}</div></td>
+      <td class="text-sm">${p.especialidade?.nome || '—'}</td>
+      <td class="text-sm">${new Date(p.dataInicio).toLocaleDateString('pt-BR')} ${new Date(p.dataInicio).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td class="text-sm text-muted">${p.duracaoHoras}h</td>
+      <td class="text-sm">${p.medico?.usuario?.nomeCompleto || '<span class="text-muted">—</span>'}</td>
+      <td><span class="badge ${STATUS_BADGE[p.status]||'badge-gray'}">${p.status}${p.urgente?' ⚡':''}</span></td>
+      <td class="text-sm fw-500">R$ ${Number(p.valorBase).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-ghost btn-xs" onclick="verDetalhes(${p.id})">👁</button>
+          ${p.status==='ABERTO' ? `<button class="btn btn-ghost btn-xs" onclick="notificarRaio(${p.id})">📣</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+    renderPagination(data.page, data.pages);
+  } catch(err) { toast.error(err.message); }
+}
+
+async function verDetalhes(id) {
+  try {
+    const p = await api.get(`/plantoes/${id}`);
+    const candidaturas = p.candidaturas || [];
+    showModal({
+      title: `Plantão #${id}`,
+      hideCancel: true,
+      confirmText: 'Fechar',
+      body: `
+        <div class="detail-grid">
+          <p><strong>Hospital:</strong> ${p.hospital?.razaoSocial}</p>
+          <p><strong>Especialidade:</strong> ${p.especialidade?.nome}</p>
+          <p><strong>Status:</strong> <span class="badge ${STATUS_BADGE[p.status]}">${p.status}</span></p>
+          <p><strong>Período:</strong> ${new Date(p.dataInicio).toLocaleString('pt-BR')} → ${new Date(p.dataFim).toLocaleString('pt-BR')}</p>
+          <p><strong>Valor:</strong> R$ ${Number(p.valorBase).toLocaleString('pt-BR',{minimumFractionDigits:2})}</p>
+          ${candidaturas.length ? `<p><strong>Candidaturas (${candidaturas.length}):</strong></p>
+          <ul style="padding-left:16px">${candidaturas.map(c=>`<li>${c.medico?.usuario?.nomeCompleto||'—'} — <span class="badge badge-sm ${c.status==='ACEITA'?'badge-success':c.status==='REJEITADA'?'badge-danger':'badge-gray'}">${c.status}</span></li>`).join('')}</ul>` : ''}
+        </div>`,
+    });
+  } catch(err) { toast.error(err.message); }
+}
+
+async function notificarRaio(id) {
+  try { await api.post(`/plantoes/${id}/notificar-raio`, { raioKm: 20 }); toast.success('Notificações enviadas no raio de 20km'); }
+  catch(err) { toast.error(err.message); }
+}
+
+function renderPagination(page, pages) {
+  const el = document.getElementById('pagination');
+  if (!pages || pages <= 1) { el.innerHTML = ''; return; }
+  el.innerHTML = `<button class="btn btn-ghost btn-sm" ${page<=1?'disabled':''} onclick="loadPlantoes(${page-1})">← Anterior</button><span class="pagination-info">Página ${page} de ${pages}</span><button class="btn btn-ghost btn-sm" ${page>=pages?'disabled':''} onclick="loadPlantoes(${page+1})">Próxima →</button>`;
+}
+
+loadPlantoes();
+</script>
+</body></html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escalas — EncontraMed Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/variables.css"><link rel="stylesheet" href="css/reset.css"><link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header"><div class="logo-text"><span class="logo-encontra">Encontra</span><span class="logo-med">Med</span></div><div class="logo-tagline">Admin Panel</div></div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="medicos.html" class="nav-item"><span class="nav-icon">👨‍⚕️</span><span class="nav-label">Médicos</span></a>
+      <a href="hospitais.html" class="nav-item"><span class="nav-icon">🏥</span><span class="nav-label">Hospitais</span></a>
+      <a href="plantoes.html" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Plantões</span></a>
+      <a href="escalas.html" class="nav-item active"><span class="nav-icon">🗓</span><span class="nav-label">Escalas</span></a>
+      <a href="documentos.html" class="nav-item"><span class="nav-icon">📄</span><span class="nav-label">Documentos</span></a>
+      <a href="financeiro.html" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Financeiro</span></a>
+      <a href="chamados.html" class="nav-item"><span class="nav-icon">🎧</span><span class="nav-label">Chamados</span></a>
+      <a href="config.html" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="avatar" id="user-avatar">A</div><div class="sidebar-user-info"><div class="sidebar-user-name" id="user-nome">Admin</div><div id="user-role" class="sidebar-user-role"></div></div></div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">⬅ Sair</button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left"><button class="sidebar-toggle" id="sidebar-toggle">☰</button><h1 class="page-title">Escalas</h1></div>
+    </div>
+    <div class="page-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Escalas Ativas</h3>
+          <p class="card-subtitle">Gestão de escalas recorrentes cadastradas pelos hospitais</p>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-container">
+            <table><thead><tr><th>Hospital</th><th>Nome</th><th>Tipo</th><th>Especialidade</th><th>Período</th><th>Status</th><th>Plantões</th><th>Ações</th></tr></thead>
+            <tbody id="escalas-tbody"><tr><td colspan="8" class="text-center text-muted">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="js/api.js"></script><script src="js/auth.js"></script><script src="js/toast.js"></script><script src="js/modal.js"></script>
+<script>
+document.getElementById('sidebar-toggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+
+const TIPO_LABEL = { SEMANAL:'Semanal', QUINZENAL:'Quinzenal', MENSAL:'Mensal', PERSONALIZADO:'Personalizado' };
+
+async function loadEscalas() {
+  const tbody = document.getElementById('escalas-tbody');
+  try {
+    // Admin view — note: escalas endpoint requires hospital role; this is a limitation of current implementation
+    // In a full admin implementation, we'd add an /admin/escalas endpoint
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🗓</div><div>Escalas são gerenciadas pelos hospitais no aplicativo móvel</div><p class="text-muted text-sm" style="margin-top:8px">Esta seção exibirá todas as escalas dos hospitais quando o endpoint admin/escalas for implementado</p></div></td></tr>';
+  } catch(err) { toast.error(err.message); }
+}
+
+loadEscalas();
+</script>
+</body></html>

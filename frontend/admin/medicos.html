@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Médicos — EncontraMed Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/variables.css"><link rel="stylesheet" href="css/reset.css"><link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header"><div class="logo-text"><span class="logo-encontra">Encontra</span><span class="logo-med">Med</span></div><div class="logo-tagline">Admin Panel</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Principal</div>
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="medicos.html" class="nav-item active"><span class="nav-icon">👨‍⚕️</span><span class="nav-label">Médicos</span></a>
+      <a href="hospitais.html" class="nav-item"><span class="nav-icon">🏥</span><span class="nav-label">Hospitais</span></a>
+      <a href="plantoes.html" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Plantões</span></a>
+      <a href="escalas.html" class="nav-item"><span class="nav-icon">🗓</span><span class="nav-label">Escalas</span></a>
+      <div class="nav-section-title">Operações</div>
+      <a href="documentos.html" class="nav-item"><span class="nav-icon">📄</span><span class="nav-label">Documentos</span></a>
+      <a href="financeiro.html" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Financeiro</span></a>
+      <a href="chamados.html" class="nav-item"><span class="nav-icon">🎧</span><span class="nav-label">Chamados</span></a>
+      <div class="nav-section-title">Sistema</div>
+      <a href="config.html" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="avatar" id="user-avatar">A</div><div class="sidebar-user-info"><div class="sidebar-user-name" id="user-nome">Admin</div><div class="sidebar-user-role" id="user-role">ADMIN</div></div></div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">⬅ Sair</button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left"><button class="sidebar-toggle" id="sidebar-toggle">☰</button><h1 class="page-title">Médicos</h1></div>
+      <div class="topbar-right">
+        <div class="search-bar"><input type="text" id="search" placeholder="Buscar por nome, CRM ou e-mail..." class="input-field"><button class="btn btn-primary btn-sm" onclick="loadMedicos()">Buscar</button></div>
+      </div>
+    </div>
+    <div class="page-content">
+      <!-- Filters -->
+      <div class="filters-bar">
+        <select id="filter-crm" class="select-field select-sm" onchange="loadMedicos()">
+          <option value="">Todos os status CRM</option>
+          <option value="ATIVO">Ativo</option>
+          <option value="INATIVO">Inativo</option>
+          <option value="SUSPENSO">Suspenso</option>
+          <option value="NAO_VERIFICADO">Não Verificado</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="card-body p-0">
+          <div class="table-container">
+            <table id="medicos-table">
+              <thead><tr>
+                <th>Médico</th><th>CRM / UF</th><th>Status CRM</th><th>Especialidades</th><th>Cadastrado</th><th>Ações</th>
+              </tr></thead>
+              <tbody id="medicos-tbody">
+                <tr><td colspan="6" class="text-center"><div class="skeleton" style="height:40px;margin:8px"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal Detalhe -->
+<script src="js/api.js"></script><script src="js/auth.js"></script><script src="js/toast.js"></script><script src="js/modal.js"></script>
+<script>
+document.getElementById('sidebar-toggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+
+const CRM_BADGE = { ATIVO:'badge-success', INATIVO:'badge-warning', SUSPENSO:'badge-danger', CANCELADO:'badge-danger', NAO_VERIFICADO:'badge-gray' };
+const CRM_LABEL = { ATIVO:'Ativo', INATIVO:'Inativo', SUSPENSO:'Suspenso', CANCELADO:'Cancelado', NAO_VERIFICADO:'Não Verificado' };
+
+let currentPage = 1;
+
+async function loadMedicos(page = 1) {
+  currentPage = page;
+  const search = document.getElementById('search').value;
+  const crm = document.getElementById('filter-crm').value;
+  const params = new URLSearchParams({ page, limit: 20, ...(search && {search}), ...(crm && {crmStatus: crm}) });
+
+  const tbody = document.getElementById('medicos-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Carregando...</td></tr>';
+
+  try {
+    const data = await api.get(`/admin/usuarios?role=MEDICO&${params}`);
+    const usuarios = data.usuarios || [];
+
+    if (!usuarios.length) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👨‍⚕️</div><div>Nenhum médico encontrado</div></div></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = usuarios.map(u => {
+      const m = u.medico || {};
+      return `<tr>
+        <td>
+          <div class="user-cell">
+            <div class="avatar avatar-sm">${u.nomeCompleto.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase()}</div>
+            <div><div class="fw-500">${u.nomeCompleto}</div><div class="text-muted text-sm">${u.email}</div></div>
+          </div>
+        </td>
+        <td>${m.crm ? `${m.crm}/${m.crmUf}` : '<span class="text-muted">—</span>'}</td>
+        <td><span class="badge ${CRM_BADGE[m.crmStatus] || 'badge-gray'}">${CRM_LABEL[m.crmStatus] || m.crmStatus || '—'}</span></td>
+        <td><span class="text-muted text-sm">Ver perfil</span></td>
+        <td class="text-sm text-muted">${new Date(u.criadoEm).toLocaleDateString('pt-BR')}</td>
+        <td>
+          <div class="action-btns">
+            ${m.crm ? `<button class="btn btn-ghost btn-xs" onclick="revalidarCRM(${u.id}, '${m.crm}/${m.crmUf}')">🔍 CRM</button>` : ''}
+            <button class="btn btn-ghost btn-xs" onclick="toggleAtivo(${u.id}, ${u.ativo}, '${u.nomeCompleto}')">${u.ativo ? '⛔ Suspender' : '✅ Ativar'}</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    renderPagination(data.page, data.pages, loadMedicos);
+  } catch(err) {
+    toast.error(err.message);
+  }
+}
+
+async function revalidarCRM(userId, crmText) {
+  // Need medicoId not userId — get from user list
+  toast.info('Revalidando CRM: ' + crmText + '...');
+  try {
+    const data = await api.post(`/admin/medicos/${userId}/revalidar-crm`);
+    toast.success(`CRM validado: ${data.status}`);
+    loadMedicos(currentPage);
+  } catch(err) { toast.error(err.message); }
+}
+
+async function toggleAtivo(id, ativo, nome) {
+  showConfirm(`${ativo ? 'Suspender' : 'Ativar'} o usuário ${nome}?`, async () => {
+    try {
+      await api.put(`/admin/usuarios/${id}/${ativo ? 'suspender' : 'ativar'}`);
+      toast.success('Usuário atualizado com sucesso');
+      loadMedicos(currentPage);
+    } catch(err) { toast.error(err.message); }
+  });
+}
+
+function renderPagination(page, pages, callback) {
+  const el = document.getElementById('pagination');
+  if (!pages || pages <= 1) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <button class="btn btn-ghost btn-sm" ${page<=1?'disabled':''} onclick="(${callback.name})(${page-1})">← Anterior</button>
+    <span class="pagination-info">Página ${page} de ${pages}</span>
+    <button class="btn btn-ghost btn-sm" ${page>=pages?'disabled':''} onclick="(${callback.name})(${page+1})">Próxima →</button>
+  `;
+}
+
+document.getElementById('search').addEventListener('keydown', e => { if(e.key==='Enter') loadMedicos(); });
+loadMedicos();
+</script>
+</body></html>

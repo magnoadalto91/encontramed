@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EncontraMed — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-primary); overflow: hidden; }
+    .login-bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(38,208,206,0.06) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(26,110,189,0.08) 0%, transparent 50%);
+    }
+    .login-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image: linear-gradient(rgba(38,208,206,0.04) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(38,208,206,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .login-card {
+      position: relative; z-index: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+      animation: slideUp 0.4s ease;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo-text { font-size: 32px; font-weight: 700; }
+    .login-logo-text .encontra { color: var(--accent); }
+    .login-logo-text .med { color: var(--text-primary); }
+    .login-tagline { color: var(--text-muted); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+    .login-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; text-align: center; }
+    .login-subtitle { color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 32px; }
+    .login-form .form-group { margin-bottom: 16px; }
+    .login-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #EF4444; padding: 12px 16px; border-radius: 8px; font-size: 14px; display: none; margin-bottom: 16px; }
+    .login-error.show { display: block; }
+    .btn-login { width: 100%; margin-top: 8px; height: 48px; font-size: 16px; font-weight: 600; }
+    .login-footer { text-align: center; margin-top: 24px; color: var(--text-muted); font-size: 13px; }
+    .dots { display: flex; gap: 6px; justify-content: center; margin-top: 40px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0.3; }
+    .dot:nth-child(2) { opacity: 0.6; } .dot:nth-child(3) { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-text"><span class="encontra">Encontra</span><span class="med">Med</span></div>
+      <div class="login-tagline">Conexão Médica Inteligente</div>
+    </div>
+
+    <h1 class="login-title">Painel Administrativo</h1>
+    <p class="login-subtitle">Entre com suas credenciais de acesso</p>
+
+    <div class="login-error" id="login-error"></div>
+
+    <form class="login-form" id="login-form" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label" for="email">E-mail</label>
+        <input type="email" id="email" name="email" class="input-field" placeholder="admin@encontramed.com.br" autocomplete="email" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="senha">Senha</label>
+        <div style="position:relative;">
+          <input type="password" id="senha" name="senha" class="input-field" placeholder="••••••••" autocomplete="current-password" required style="padding-right: 44px;">
+          <button type="button" id="toggle-senha" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px;">👁</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-login" id="login-btn">
+        <span id="btn-text">Entrar</span>
+        <span id="btn-loading" style="display:none;" class="spinner-sm"></span>
+      </button>
+    </form>
+
+    <div class="login-footer">
+      Somente acessos autorizados pelo sistema.
+    </div>
+
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/toast.js"></script>
+  <script>
+    // Redirect if already authenticated
+    if (localStorage.getItem('admin_token')) {
+      const role = localStorage.getItem('admin_role');
+      window.location.href = role === 'SUPORTE' ? 'chamados.html' : 'dashboard.html';
+    }
+
+    document.getElementById('toggle-senha').addEventListener('click', function() {
+      const input = document.getElementById('senha');
+      input.type = input.type === 'password' ? 'text' : 'password';
+      this.textContent = input.type === 'password' ? '👁' : '🙈';
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      const errEl = document.getElementById('login-error');
+      const btnText = document.getElementById('btn-text');
+      const btnLoading = document.getElementById('btn-loading');
+      const btn = document.getElementById('login-btn');
+
+      errEl.classList.remove('show');
+      btn.disabled = true;
+      btnText.style.display = 'none';
+      btnLoading.style.display = 'inline-block';
+
+      try {
+        const result = await api.post('/auth/login', { email, senha, plataforma: 'admin' });
+
+        if (!['ADMIN', 'SUPORTE'].includes(result.user.role)) {
+          throw new Error('Acesso negado. Este painel é exclusivo para administradores.');
+        }
+
+        localStorage.setItem('admin_token', result.token);
+        localStorage.setItem('admin_role', result.user.role);
+        localStorage.setItem('admin_user', JSON.stringify(result.user));
+
+        toast.success('Login realizado com sucesso!');
+        setTimeout(() => {
+          window.location.href = result.user.role === 'SUPORTE' ? 'chamados.html' : 'dashboard.html';
+        }, 500);
+
+      } catch (err) {
+        errEl.textContent = err.message || 'Credenciais inválidas';
+        errEl.classList.add('show');
+      } finally {
+        btn.disabled = false;
+        btnText.style.display = 'inline';
+        btnLoading.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

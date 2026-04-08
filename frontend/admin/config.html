@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configurações — EncontraMed Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/variables.css"><link rel="stylesheet" href="css/reset.css"><link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header"><div class="logo-text"><span class="logo-encontra">Encontra</span><span class="logo-med">Med</span></div><div class="logo-tagline">Admin Panel</div></div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="medicos.html" class="nav-item"><span class="nav-icon">👨‍⚕️</span><span class="nav-label">Médicos</span></a>
+      <a href="hospitais.html" class="nav-item"><span class="nav-icon">🏥</span><span class="nav-label">Hospitais</span></a>
+      <a href="plantoes.html" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Plantões</span></a>
+      <a href="documentos.html" class="nav-item"><span class="nav-icon">📄</span><span class="nav-label">Documentos</span></a>
+      <a href="financeiro.html" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Financeiro</span></a>
+      <a href="chamados.html" class="nav-item"><span class="nav-icon">🎧</span><span class="nav-label">Chamados</span></a>
+      <a href="config.html" class="nav-item active"><span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="avatar" id="user-avatar">A</div><div class="sidebar-user-info"><div class="sidebar-user-name" id="user-nome">Admin</div><div id="user-role" class="sidebar-user-role"></div></div></div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">⬅ Sair</button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left"><button class="sidebar-toggle" id="sidebar-toggle">☰</button><h1 class="page-title">Configurações do Sistema</h1></div>
+    </div>
+    <div class="page-content">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:24px;">
+
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">💰 Financeiro</h3></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Taxa da Plataforma (%)</label>
+              <input type="number" id="taxa_plataforma" class="input-field" step="0.01" min="0" max="1" placeholder="0.15">
+              <div class="form-hint">Ex: 0.15 = 15% de taxa sobre o valor bruto do plantão</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvar('taxa_plataforma')">Salvar</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">🔔 Push — Raio de Notificação</h3></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Raio Inicial (km)</label>
+              <input type="number" id="push_raio_inicial_km" class="input-field" min="1" placeholder="20">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Raio de Expansão após 30min (km)</label>
+              <input type="number" id="push_raio_expansao_km" class="input-field" min="1" placeholder="50">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvarMulti(['push_raio_inicial_km','push_raio_expansao_km'])">Salvar</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">📱 Sessões Simultâneas</h3></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Máximo — MÉDICO</label>
+              <input type="number" id="session_max_medico" class="input-field" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Máximo — HOSPITAL</label>
+              <input type="number" id="session_max_hospital" class="input-field" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Máximo — SUPORTE</label>
+              <input type="number" id="session_max_suporte" class="input-field" min="1">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvarMulti(['session_max_medico','session_max_hospital','session_max_suporte'])">Salvar</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">🗓 Escalas</h3></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Horizonte de Geração (dias)</label>
+              <input type="number" id="escala_horizonte_dias" class="input-field" min="7" placeholder="60">
+              <div class="form-hint">Quantos dias à frente os plantões de escala serão gerados</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvar('escala_horizonte_dias')">Salvar</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+<script src="js/api.js"></script><script src="js/auth.js"></script><script src="js/toast.js"></script><script src="js/modal.js"></script>
+<script>
+document.getElementById('sidebar-toggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+
+async function loadConfig() {
+  try {
+    const config = await api.get('/admin/config');
+    Object.entries(config).forEach(([k, v]) => {
+      const el = document.getElementById(k);
+      if (el) el.value = v;
+    });
+  } catch(err) { toast.error('Erro ao carregar configurações: ' + err.message); }
+}
+
+async function salvar(chave) {
+  const el = document.getElementById(chave);
+  if (!el) return;
+  try {
+    await api.put('/admin/config', { chave, valor: el.value });
+    toast.success('Configuração salva!');
+  } catch(err) { toast.error(err.message); }
+}
+
+async function salvarMulti(chaves) {
+  try {
+    await Promise.all(chaves.map(k => {
+      const el = document.getElementById(k);
+      if (!el) return;
+      return api.put('/admin/config', { chave: k, valor: el.value });
+    }));
+    toast.success('Configurações salvas!');
+  } catch(err) { toast.error(err.message); }
+}
+
+loadConfig();
+</script>
+</body></html>

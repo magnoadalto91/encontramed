@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentos — EncontraMed Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/variables.css"><link rel="stylesheet" href="css/reset.css"><link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header"><div class="logo-text"><span class="logo-encontra">Encontra</span><span class="logo-med">Med</span></div><div class="logo-tagline">Admin Panel</div></div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="medicos.html" class="nav-item"><span class="nav-icon">👨‍⚕️</span><span class="nav-label">Médicos</span></a>
+      <a href="documentos.html" class="nav-item active"><span class="nav-icon">📄</span><span class="nav-label">Documentos</span></a>
+      <a href="chamados.html" class="nav-item"><span class="nav-icon">🎧</span><span class="nav-label">Chamados</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="avatar" id="user-avatar">A</div><div class="sidebar-user-info"><div class="sidebar-user-name" id="user-nome">Admin</div><div id="user-role" class="sidebar-user-role"></div></div></div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">⬅ Sair</button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left"><button class="sidebar-toggle" id="sidebar-toggle">☰</button><h1 class="page-title">Revisão de Documentos</h1></div>
+      <div class="topbar-right">
+        <select id="filter-status" class="select-field select-sm" onchange="loadDocs()">
+          <option value="">Todos</option><option value="PENDENTE" selected>Pendentes</option><option value="VALIDADO">Validados</option><option value="REJEITADO">Rejeitados</option>
+        </select>
+      </div>
+    </div>
+    <div class="page-content">
+      <div class="card">
+        <div class="card-body p-0">
+          <div class="table-container">
+            <table><thead><tr><th>Médico</th><th>Tipo</th><th>Status</th><th>Data Upload</th><th>Resultado OCR</th><th>Ações</th></tr></thead>
+            <tbody id="docs-tbody"><tr><td colspan="6" class="text-center text-muted">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/api.js"></script><script src="js/auth.js"></script><script src="js/toast.js"></script><script src="js/modal.js"></script>
+<script>
+document.getElementById('sidebar-toggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+
+const TIPO_LABEL = { CARTEIRA_CRM:'Carteira CRM', DIPLOMA:'Diploma', RQE_CERTIFICADO:'Certificado RQE', CONTRATO_PJ:'Contrato PJ', OUTROS:'Outros' };
+const STATUS_BADGE = { PENDENTE:'badge-warning', PROCESSANDO:'badge-primary', VALIDADO:'badge-success', REJEITADO:'badge-danger' };
+let currentPage = 1;
+
+async function loadDocs(page = 1) {
+  currentPage = page;
+  const status = document.getElementById('filter-status').value;
+  const params = new URLSearchParams({ page, limit: 20, ...(status && {status}) });
+  const tbody = document.getElementById('docs-tbody');
+
+  try {
+    const data = await api.get(`/admin/documentos/fila?${params}`);
+    const docs = data.documentos || [];
+    if (!docs.length) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><div>Nenhum documento encontrado</div></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = docs.map(d => `<tr>
+      <td><div class="fw-500">${d.medico?.usuario?.nomeCompleto||'—'}</div><div class="text-muted text-sm">${d.medico?.usuario?.email||''}</div></td>
+      <td>${TIPO_LABEL[d.tipo]||d.tipo}</td>
+      <td><span class="badge ${STATUS_BADGE[d.status]||'badge-gray'}">${d.status}</span></td>
+      <td class="text-sm text-muted">${new Date(d.criadoEm).toLocaleDateString('pt-BR')}</td>
+      <td class="text-sm">${d.ocrDadosJson ? '<span class="badge badge-primary">OCR ✓</span>' : '<span class="text-muted">—</span>'}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-ghost btn-xs" onclick="visualizar(${d.id})">👁 Ver</button>
+          ${d.status==='PENDENTE'||d.status==='PROCESSANDO' ? `
+            <button class="btn btn-ghost btn-xs" style="color:var(--success)" onclick="validar(${d.id})">✅ Validar</button>
+            <button class="btn btn-ghost btn-xs" style="color:var(--danger)" onclick="rejeitar(${d.id})">✕ Rejeitar</button>
+          ` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+    renderPagination(data.page, data.pages);
+  } catch(err) { toast.error(err.message); }
+}
+
+async function visualizar(docId) {
+  try {
+    const { url } = await api.get(`/documentos/${docId}/url`);
+    window.open(url, '_blank');
+  } catch(err) { toast.error(err.message); }
+}
+
+async function validar(docId) {
+  showConfirm('Validar este documento?', async () => {
+    try { await api.post(`/admin/documentos/${docId}/validar`); toast.success('Documento validado!'); loadDocs(currentPage); }
+    catch(err) { toast.error(err.message); }
+  }, 'default');
+}
+
+async function rejeitar(docId) {
+  const motivo = prompt('Motivo da rejeição (obrigatório):');
+  if (!motivo) return;
+  try { await api.post(`/admin/documentos/${docId}/rejeitar`, { motivoRejeicao: motivo }); toast.success('Documento rejeitado'); loadDocs(currentPage); }
+  catch(err) { toast.error(err.message); }
+}
+
+function renderPagination(page, pages) {
+  const el = document.getElementById('pagination');
+  if (!pages || pages <= 1) { el.innerHTML = ''; return; }
+  el.innerHTML = `<button class="btn btn-ghost btn-sm" ${page<=1?'disabled':''} onclick="loadDocs(${page-1})">← Anterior</button><span class="pagination-info">Página ${page} de ${pages}</span><button class="btn btn-ghost btn-sm" ${page>=pages?'disabled':''} onclick="loadDocs(${page+1})">Próxima →</button>`;
+}
+
+// Default to pendentes
+document.getElementById('filter-status').value = 'PENDENTE';
+loadDocs();
+</script>
+</body></html>

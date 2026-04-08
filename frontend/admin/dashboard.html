@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — EncontraMed Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-text"><span class="logo-encontra">Encontra</span><span class="logo-med">Med</span></div>
+        <div class="logo-tagline">Admin Panel</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Principal</div>
+        <a href="dashboard.html" class="nav-item active"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+        <a href="medicos.html"   class="nav-item"><span class="nav-icon">👨‍⚕️</span><span class="nav-label">Médicos</span></a>
+        <a href="hospitais.html" class="nav-item"><span class="nav-icon">🏥</span><span class="nav-label">Hospitais</span></a>
+        <a href="plantoes.html"  class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Plantões</span></a>
+        <a href="escalas.html"   class="nav-item"><span class="nav-icon">🗓</span><span class="nav-label">Escalas</span></a>
+        <div class="nav-section-title">Operações</div>
+        <a href="documentos.html" class="nav-item"><span class="nav-icon">📄</span><span class="nav-label">Documentos</span></a>
+        <a href="financeiro.html" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Financeiro</span></a>
+        <a href="chamados.html"   class="nav-item"><span class="nav-icon">🎧</span><span class="nav-label">Chamados</span></a>
+        <div class="nav-section-title">Sistema</div>
+        <a href="config.html" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar" id="user-avatar">A</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="user-nome">Admin</div>
+            <div class="sidebar-user-role" id="user-role">ADMIN</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="logout-btn" title="Sair">⬅ Sair</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+          <h1 class="page-title">Dashboard</h1>
+        </div>
+        <div class="topbar-right">
+          <span class="topbar-date" id="current-date"></span>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- Stat Cards -->
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+          <div class="stat-card skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+          <div class="stat-card skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+          <div class="stat-card skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+          <div class="stat-card skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+          <div class="stat-card skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Plantões por Status -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Plantões por Status</h3>
+            </div>
+            <div class="card-body">
+              <div class="status-chart" id="status-chart">
+                <div class="skeleton" style="height:200px"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Ações Rápidas</h3></div>
+            <div class="card-body">
+              <div class="quick-actions">
+                <a href="documentos.html" class="quick-action-btn">
+                  <span class="qa-icon">📄</span>
+                  <div>
+                    <div class="qa-title">Documentos Pendentes</div>
+                    <div class="qa-desc">Revisar e validar documentos</div>
+                  </div>
+                  <span class="qa-badge" id="docs-badge">...</span>
+                </a>
+                <a href="chamados.html" class="quick-action-btn">
+                  <span class="qa-icon">🎧</span>
+                  <div>
+                    <div class="qa-title">Chamados Abertos</div>
+                    <div class="qa-desc">Suporte e atendimento</div>
+                  </div>
+                  <span class="qa-badge" id="chamados-badge">...</span>
+                </a>
+                <a href="medicos.html?crm=NAO_VERIFICADO" class="quick-action-btn">
+                  <span class="qa-icon">🔍</span>
+                  <div>
+                    <div class="qa-title">CRMs Não Verificados</div>
+                    <div class="qa-desc">Médicos sem validação de CRM</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    // Date
+    document.getElementById('current-date').textContent = new Date().toLocaleDateString('pt-BR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+    // Sidebar toggle
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+    });
+
+    const STATUS_LABELS = {
+      ABERTO: 'Aberto', CANDIDATADO: 'Candidatado', CONFIRMADO: 'Confirmado',
+      REALIZADO: 'Realizado', PAGO: 'Pago', CANCELADO: 'Cancelado', EXPIRADO: 'Expirado',
+    };
+    const STATUS_COLORS = {
+      ABERTO: '#26D0CE', CANDIDATADO: '#1A6EBD', CONFIRMADO: '#10B981',
+      REALIZADO: '#8B5CF6', PAGO: '#059669', CANCELADO: '#EF4444', EXPIRADO: '#6B7280',
+    };
+
+    async function loadDashboard() {
+      try {
+        const stats = await api.get('/admin/stats');
+
+        // Render stat cards
+        const grid = document.getElementById('stats-grid');
+        grid.innerHTML = `
+          ${statCard('👨‍⚕️', 'Total de Médicos', stats.totalMedicos, 'var(--accent)')}
+          ${statCard('🏥', 'Total de Hospitais', stats.totalHospitais, '#1A6EBD')}
+          ${statCard('📅', 'Plantões Ativos', stats.plantoesAtivos, '#8B5CF6')}
+          ${statCard('✅', 'Realizados Hoje', stats.realizadosHoje, '#10B981')}
+          ${statCard('💰', 'Receita do Mês', 'R$ ' + stats.receitaMes.toLocaleString('pt-BR', {minimumFractionDigits:2}), '#059669')}
+          ${statCard('📄', 'Docs Pendentes', stats.docsPendentes, '#F59E0B')}
+        `;
+
+        // Update badges
+        document.getElementById('docs-badge').textContent = stats.docsPendentes;
+        document.getElementById('chamados-badge').textContent = stats.chamadosAbertos;
+
+        // Status chart
+        const chart = document.getElementById('status-chart');
+        const porStatus = stats.plantoesPorStatus || {};
+        const total = Object.values(porStatus).reduce((a, b) => a + b, 0) || 1;
+        chart.innerHTML = Object.entries(porStatus).map(([status, count]) => `
+          <div class="chart-bar-row">
+            <span class="chart-label">${STATUS_LABELS[status] || status}</span>
+            <div class="chart-bar-bg">
+              <div class="chart-bar-fill" style="width:${Math.round(count/total*100)}%; background:${STATUS_COLORS[status] || '#888'}"></div>
+            </div>
+            <span class="chart-count">${count}</span>
+          </div>
+        `).join('') || '<p class="text-muted">Nenhum dado disponível</p>';
+
+      } catch (err) {
+        toast.error('Erro ao carregar dashboard: ' + err.message);
+      }
+    }
+
+    function statCard(icon, label, value, color) {
+      return `
+        <div class="stat-card">
+          <div class="stat-icon" style="color:${color}">${icon}</div>
+          <div class="stat-value">${value}</div>
+          <div class="stat-label">${label}</div>
+        </div>`;
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>
