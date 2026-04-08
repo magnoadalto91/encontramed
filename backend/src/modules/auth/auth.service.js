@@ -148,6 +148,7 @@ async function logout(userId, sid) {
  * Register a new user.
  * Hashes password with bcrypt(10), creates user record,
  * generates verification token and sends verification email.
+ * MEDICO: CRM validation against CFM is mandatory before account creation.
  */
 async function register(data) {
   const { email, senha, nomeCompleto, role, telefone } = data;
@@ -156,6 +157,40 @@ async function register(data) {
   if (!['MEDICO', 'HOSPITAL'].includes(role)) {
     throw Object.assign(new Error('Tipo de conta inválido'), { status: 400 });
   }
+
+  // ── CRM validation (mandatory for MEDICO) ────────────────────────────────
+  if (role === 'MEDICO') {
+    const crm = String(data.crm || '').replace(/\D/g, '');
+    const crmUf = String(data.crmUf || '').toUpperCase().trim();
+
+    if (!crm || !crmUf) {
+      throw Object.assign(new Error('CRM e UF são obrigatórios para cadastro de médico'), { status: 400 });
+    }
+
+    const { validarCrm } = require('../crm/crm.service');
+    let dadosCfm;
+    try {
+      dadosCfm = await validarCrm(crm, crmUf, data.captchaToken || null);
+    } catch (err) {
+      throw Object.assign(
+        new Error('Não foi possível validar o CRM no momento. Tente novamente em alguns minutos.'),
+        { status: 503 }
+      );
+    }
+
+    if (dadosCfm.situacao !== 'ATIVO') {
+      throw Object.assign(
+        new Error(`CRM ${crm}/${crmUf} está com situação "${dadosCfm.situacao}" no CFM. Apenas médicos com CRM ativo podem se cadastrar.`),
+        { status: 422 }
+      );
+    }
+
+    // Store validated CFM data to persist after user creation
+    data._dadosCfm = dadosCfm;
+    data._crm = crm;
+    data._crmUf = crmUf;
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const existing = await prisma.usuarios.findUnique({
     where: { email: email.toLowerCase().trim() },
@@ -185,7 +220,26 @@ async function register(data) {
 
   // Create the role-specific profile record
   if (role === 'MEDICO') {
-    await prisma.medicos.create({ data: { usuarioId: user.id } });
+    const medicoRecord = await prisma.medicos.create({
+      data: {
+        usuarioId: user.id,
+        crm: data._crm,
+        crmUf: data._crmUf,
+        crmStatus: 'ATIVO',
+        crmUltimaVerif: new Date(),
+        crmDadosCfm: data._dadosCfm,
+      },
+    });
+
+    // Sync especialidades from CFM data
+    if (data._dadosCfm?.especialidades?.length) {
+      const { validarEPersistir } = require('../crm/crm.service');
+      // Re-use syncEspecialidades indirectly — call internal from crm service
+      const crmSvc = require('../crm/crm.service');
+      if (crmSvc.syncEspecialidades) {
+        await crmSvc.syncEspecialidades(medicoRecord.id, data._dadosCfm.especialidades);
+      }
+    }
   } else if (role === 'HOSPITAL') {
     // Hospital requires CNPJ — will be completed during onboarding
     await prisma.hospitais.create({

@@ -231,4 +231,4 @@ async function syncEspecialidades(medicoId, especialidades) {
   }
 }
 
-module.exports = { validarCrm, validarEPersistir };
+module.exports = { validarCrm, validarEPersistir, syncEspecialidades };

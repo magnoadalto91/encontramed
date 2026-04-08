@@ -47,6 +47,11 @@ export default function RegisterScreen({ navigation }) {
     if (role === 'MEDICO') {
       if (!form.crm.trim()) e.crm = 'CRM é obrigatório';
       if (!form.crmUf.trim()) e.crmUf = 'UF é obrigatória';
+      if (!crmValidado) {
+        e.crm = 'Clique em "Validar" para verificar seu CRM antes de continuar';
+      } else if (crmValidado.situacao !== 'ATIVO') {
+        e.crm = `CRM com situação "${crmValidado.situacao}" — apenas CRMs ativos podem se cadastrar`;
+      }
     }
     if (role === 'HOSPITAL') {
       if (!form.cnpj.replace(/\D/g,'') || form.cnpj.replace(/\D/g,'').length < 14) e.cnpj = 'CNPJ inválido';
