@@ -10,8 +10,16 @@ const { sendToUser } = require('../../config/websocket');
 const logger = require('../../utils/logger');
 
 const prisma = new PrismaClient();
-const resend = new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@encontramed.com.br';
+
+// Lazy — só instancia quando for realmente enviar e-mail
+function getResend() {
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn('RESEND_API_KEY não configurada — e-mails não serão enviados');
+    return null;
+  }
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 // Session limits per role — also serves as an upsell mechanism (FREE → PRO)
 const SESSOES_MAX_POR_ROLE = {
@@ -296,6 +304,9 @@ async function _enviarEmailVerificacao(user, token) {
   const link = `${frontendUrl}/verificar-email?token=${token}`;
   const nome = escapeHtml(user.nomeCompleto);
 
+  const resend = getResend();
+  if (!resend) return;
+
   try {
     await resend.emails.send({
       from: EMAIL_FROM,
@@ -329,6 +340,9 @@ async function _enviarEmailRecuperacao(user, token) {
   const frontendUrl = (process.env.FRONTEND_URL || '').split(',')[0].trim();
   const link = `${frontendUrl}/redefinir-senha?token=${token}`;
   const nome = escapeHtml(user.nomeCompleto);
+
+  const resend = getResend();
+  if (!resend) return;
 
   try {
     await resend.emails.send({
