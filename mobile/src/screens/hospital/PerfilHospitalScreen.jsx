@@ -36,6 +36,15 @@ export default function PerfilHospitalScreen({ navigation }) {
     finally { setLoggingOut(false); setShowLogout(false); }
   };
 
+  // Badges de capacidades (só as que forem true)
+  const capacidades = [
+    cnes?.possuiCentroCirurgico  && '🔪 Centro Cirúrgico',
+    cnes?.possuiCentroObstetrico && '🤱 Centro Obstétrico',
+    cnes?.possuiAtendimentoHosp  && '🏥 Internação',
+    cnes?.possuiAtendimentoAmb   && '🩺 Ambulatório',
+    cnes?.possuiServApoio        && '🔬 Serv. Apoio',
+  ].filter(Boolean);
+
   return (
     <LinearGradient colors={['#0A1628', '#0D1B2E']} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
@@ -59,12 +68,13 @@ export default function PerfilHospitalScreen({ navigation }) {
           {hospital && (
             <Card style={styles.card}>
               <Text style={styles.sectionTitle}>Dados do Hospital</Text>
-              {hospital.razaoSocial    && <InfoRow label="Razão Social"  value={hospital.razaoSocial} />}
-              {hospital.cnpj           && <InfoRow label="CNPJ"          value={maskCNPJ(hospital.cnpj)} />}
-              {hospital.codigoCNES     && <InfoRow label="CNES"          value={hospital.codigoCNES} />}
-              {hospital.tipoEstabelecimento && <InfoRow label="Tipo"     value={hospital.tipoEstabelecimento} />}
-              {hospital.telefoneContato && <InfoRow label="Telefone"     value={hospital.telefoneContato} />}
-              {hospital.enderecoCidade && (
+              {hospital.razaoSocial     && <InfoRow label="Razão Social"  value={hospital.razaoSocial} />}
+              {hospital.cnpj            && <InfoRow label="CNPJ"          value={maskCNPJ(hospital.cnpj)} />}
+              {hospital.codigoCNES      && <InfoRow label="CNES"          value={hospital.codigoCNES} />}
+              {hospital.tipoEstabelecimento && <InfoRow label="Tipo"      value={hospital.tipoEstabelecimento} />}
+              {hospital.telefoneContato && <InfoRow label="Telefone"      value={hospital.telefoneContato} />}
+              {cnes?.emailContato       && <InfoRow label="E-mail"        value={cnes.emailContato} />}
+              {hospital.enderecoCidade  && (
                 <InfoRow label="Localização"
                   value={`${hospital.enderecoCidade}${hospital.enderecoEstado ? ' – ' + hospital.enderecoEstado : ''}`}
                 />
@@ -72,20 +82,40 @@ export default function PerfilHospitalScreen({ navigation }) {
             </Card>
           )}
 
-          {/* Dados CNES — leitos e equipamentos */}
+          {/* Dados CNES */}
           {cnes && (
             <Card style={styles.card}>
               <Text style={styles.sectionTitle}>Dados do CNES / Receita Federal</Text>
 
-              {cnes.leitos && (
+              {/* Metadados institucionais */}
+              {(cnes.tipoGestao || cnes.esferaAdministrativa || cnes.nivelHierarquia ||
+                cnes.turnoAtendimento || cnes.naturezaJuridica) && (
+                <View style={styles.badgesRow}>
+                  {cnes.tipoGestao          && <InfoBadge label={'🏛 Gestão: ' + cnes.tipoGestao} />}
+                  {cnes.esferaAdministrativa && <InfoBadge label={'📋 ' + cnes.esferaAdministrativa} />}
+                  {cnes.nivelHierarquia      && <InfoBadge label={'🔢 ' + cnes.nivelHierarquia} />}
+                  {cnes.turnoAtendimento     && <InfoBadge label={'🕐 ' + cnes.turnoAtendimento} />}
+                  {cnes.naturezaJuridica     && <InfoBadge label={cnes.naturezaJuridica} />}
+                </View>
+              )}
+
+              {/* Capacidades */}
+              {capacidades.length > 0 && (
+                <View style={[styles.badgesRow, { marginTop: 8 }]}>
+                  {capacidades.map((c, i) => <InfoBadge key={i} label={c} color={COLORS.accent} />)}
+                </View>
+              )}
+
+              {/* Leitos */}
+              <Text style={[styles.subTitle, { marginTop: 16 }]}>🛏 Leitos</Text>
+              {cnes.leitos ? (
                 <>
-                  <Text style={styles.subTitle}>🛏 Leitos</Text>
                   <View style={styles.leitosRow}>
-                    <LeitoStat label="Total" value={cnes.leitos.total} />
-                    <LeitoStat label="SUS" value={cnes.leitos.sus} color={COLORS.success} />
-                    <LeitoStat label="Não-SUS" value={cnes.leitos.naoSus} color={COLORS.textMuted} />
+                    <LeitoStat label="Total"      value={cnes.leitos.total} />
+                    <LeitoStat label="SUS"         value={cnes.leitos.sus}         color={COLORS.success} />
+                    <LeitoStat label="Não-SUS"     value={cnes.leitos.naoSus}      color={COLORS.textMuted} />
                     {cnes.leitos.contratados > 0 && (
-                      <LeitoStat label="Contrat." value={cnes.leitos.contratados} color={COLORS.accent} />
+                      <LeitoStat label="Contrat."  value={cnes.leitos.contratados} color={COLORS.accent} />
                     )}
                   </View>
                   {cnes.leitos.detalhes?.length > 0 && (
@@ -104,11 +134,14 @@ export default function PerfilHospitalScreen({ navigation }) {
                     </View>
                   )}
                 </>
+              ) : (
+                <Text style={styles.emptyText}>Nenhum leito registrado no CNES</Text>
               )}
 
-              {cnes.equipamentos?.length > 0 && (
+              {/* Equipamentos */}
+              <Text style={[styles.subTitle, { marginTop: 16 }]}>🔬 Equipamentos</Text>
+              {cnes.equipamentos?.length > 0 ? (
                 <>
-                  <Text style={[styles.subTitle, { marginTop: 16 }]}>🔬 Equipamentos</Text>
                   {cnes.equipamentos.slice(0, 10).map((e, i) => (
                     <View key={i} style={styles.leitoItem}>
                       <Text style={styles.leitoNome} numberOfLines={1}>{e.nome}</Text>
@@ -124,26 +157,27 @@ export default function PerfilHospitalScreen({ navigation }) {
                     </Text>
                   )}
                 </>
+              ) : (
+                <Text style={styles.emptyText}>Nenhum equipamento registrado no CNES</Text>
               )}
 
-              {cnes.servicos?.length > 0 && (
-                <>
-                  <Text style={[styles.subTitle, { marginTop: 16 }]}>🏥 Serviços</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                    {cnes.servicos.slice(0, 12).map((s, i) => (
-                      <View key={i} style={styles.servicoBadge}>
-                        <Text style={styles.servicoText} numberOfLines={1}>{s.servico}</Text>
-                      </View>
-                    ))}
-                    {cnes.servicos.length > 12 && (
-                      <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>+{cnes.servicos.length - 12}</Text>
-                    )}
-                  </View>
-                </>
+              {/* Serviços */}
+              <Text style={[styles.subTitle, { marginTop: 16 }]}>🏥 Serviços</Text>
+              {cnes.servicos?.length > 0 ? (
+                <View style={[styles.badgesRow, { marginTop: 4 }]}>
+                  {cnes.servicos.slice(0, 12).map((s, i) => (
+                    <InfoBadge key={i} label={s.servico} />
+                  ))}
+                  {cnes.servicos.length > 12 && (
+                    <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>+{cnes.servicos.length - 12}</Text>
+                  )}
+                </View>
+              ) : (
+                <Text style={styles.emptyText}>Nenhum serviço registrado no CNES</Text>
               )}
 
-              {hospital.cnesUltimaConsulta && (
-                <Text style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 12 }}>
+              {hospital?.cnesUltimaConsulta && (
+                <Text style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 14 }}>
                   Consultado em {new Date(hospital.cnesUltimaConsulta).toLocaleDateString('pt-BR')}
                 </Text>
               )}
@@ -183,6 +217,14 @@ function InfoRow({ label, value }) {
   );
 }
 
+function InfoBadge({ label, color }) {
+  return (
+    <View style={[styles.infoBadge, color && { borderColor: color + '40', backgroundColor: color + '15' }]}>
+      <Text style={[styles.infoBadgeText, color && { color }]} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
+
 function LeitoStat({ label, value, color }) {
   return (
     <View style={styles.leitoStat}>
@@ -215,20 +257,26 @@ const styles = StyleSheet.create({
   email: { color: COLORS.textMuted, fontSize: 14, marginBottom: 10 },
   card: { marginBottom: 14 },
   sectionTitle: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14 },
-  subTitle: { color: COLORS.accent, fontSize: 13, fontWeight: '700', marginBottom: 10 },
+  subTitle: { color: COLORS.accent, fontSize: 13, fontWeight: '700', marginBottom: 8 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   infoLabel: { color: COLORS.textMuted, fontSize: 13, flex: 1 },
   infoValue: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1.5, textAlign: 'right' },
-  leitosRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
-  leitoStat: { flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10, alignItems: 'center' },
-  leitoStatVal: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  leitoStatLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  leitoItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  infoBadge: {
+    backgroundColor: 'rgba(38,208,206,0.08)', borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(38,208,206,0.2)',
+  },
+  infoBadgeText: { color: COLORS.textSecondary, fontSize: 11, fontWeight: '500' },
+  leitosRow: { flexDirection: 'row', gap: 8, marginBottom: 8, flexWrap: 'wrap' },
+  leitoStat: { flex: 1, minWidth: 60, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10, alignItems: 'center' },
+  leitoStatVal: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  leitoStatLabel: { color: COLORS.textMuted, fontSize: 10, marginTop: 2 },
+  leitoItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   leitoNome: { color: COLORS.textSecondary, fontSize: 13, flex: 1, marginRight: 8 },
   leitoQtd: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  emptyText: { color: COLORS.textMuted, fontSize: 13, fontStyle: 'italic', paddingVertical: 6 },
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   menuIcon: { fontSize: 18, marginRight: 12, width: 24 },
   menuLabel: { flex: 1, color: '#fff', fontSize: 15 },
-  servicoBadge: { backgroundColor: 'rgba(38,208,206,0.12)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(38,208,206,0.25)' },
-  servicoText: { color: COLORS.accent, fontSize: 11, fontWeight: '600' },
 });

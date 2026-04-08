@@ -62,7 +62,8 @@ export default function RegisterScreen({ navigation }) {
         const { data } = await api.get(`/hospitais/cnes/consultar?cnpj=${digits}`);
         setCnesDados(data);
         setCnesBuscado(true);
-        if (!form.nomeCompleto.trim() && data.razaoSocial) {
+        // Nome do hospital sempre vem da razão social do CNES/Receita Federal
+        if (data.razaoSocial) {
           setForm(prev => ({ ...prev, nomeCompleto: data.razaoSocial }));
         }
       } catch (err) {
@@ -86,7 +87,8 @@ export default function RegisterScreen({ navigation }) {
 
   const validate = () => {
     const e = {};
-    if (!form.nomeCompleto.trim()) e.nomeCompleto = 'Nome é obrigatório';
+    // Hospital: nome vem do CNPJ — não exige campo manual
+    if (role !== 'HOSPITAL' && !form.nomeCompleto.trim()) e.nomeCompleto = 'Nome é obrigatório';
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) e.email = 'E-mail inválido';
     if (!form.senha || form.senha.length < 8) e.senha = 'Mínimo 8 caracteres';
     if (role === 'MEDICO') {
@@ -250,7 +252,9 @@ export default function RegisterScreen({ navigation }) {
                   </>
                 )}
 
-                <Input label="Nome completo" value={form.nomeCompleto} onChangeText={v => update('nomeCompleto', v)} placeholder="Dr. João Silva" error={errors.nomeCompleto} />
+                {role !== 'HOSPITAL' && (
+                  <Input label="Nome completo" value={form.nomeCompleto} onChangeText={v => update('nomeCompleto', v)} placeholder="Dr. João Silva" error={errors.nomeCompleto} />
+                )}
                 <Input label="E-mail" value={form.email} onChangeText={v => update('email', v)} placeholder="seu@email.com" keyboardType="email-address" error={errors.email} />
                 <Input label="Senha" value={form.senha} onChangeText={v => update('senha', v)} placeholder="Mínimo 8 caracteres" secureTextEntry error={errors.senha} />
                 <Input label="Telefone (opcional)" value={form.telefone} onChangeText={v => update('telefone', maskPhone(v))} placeholder="(11) 99999-9999" keyboardType="phone-pad" />
