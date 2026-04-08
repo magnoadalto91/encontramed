@@ -93,6 +93,17 @@ function _first(...vals) {
   return '';
 }
 
+// Decode de tipo_gestao (código de 1 letra → descrição)
+const TIPO_GESTAO = {
+  'M': 'Municipal', 'E': 'Estadual', 'F': 'Federal',
+  'D': 'Dupla', 'S': 'Sem Gestão', 'P': 'Privada',
+};
+
+function _decodeTipoGestao(v) {
+  if (!v) return '';
+  return TIPO_GESTAO[String(v).toUpperCase().trim()] || String(v);
+}
+
 // Decode do campo codigo_tipo_unidade (código numérico → descrição legível)
 // Fonte: tabela CNES/SIGTAP
 const TIPO_UNIDADE = {
@@ -156,7 +167,7 @@ function normalizarEstabelecimento(brasilApi, cnes) {
     longitude:          lng != null ? parseFloat(lng)  : null,
     naturezaJuridica:   _first(b.natureza_juridica?.descricao,  c.descricao_natureza_juridica_estabelecimento, c.ds_natureza_juridica),
     atividadePrincipal: b.atividade_principal?.[0]?.text || '',
-    tipoGestao:         _first(c.tipo_gestao,              c.ds_tipo_gestao,  c.gestao),
+    tipoGestao:         _decodeTipoGestao(_first(c.tipo_gestao, c.ds_tipo_gestao, c.gestao)),
     esferaAdministrativa: _first(c.descricao_esfera_administrativa, c.esfera_administrativa),
     nivelHierarquia:    _first(c.descricao_nivel_hierarquia, c.nivel_hierarquia),
     turnoAtendimento:   _first(c.descricao_turno_atendimento, c.ds_turno_atendimento, c.turno_atendimento, c.turno),

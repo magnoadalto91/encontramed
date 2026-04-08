@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
   <title>Perfil — Portal Hospital | EncontraMed</title>
   <link rel="stylesheet" href="css/variables.css" />
   <link rel="stylesheet" href="css/reset.css" />
@@ -159,10 +160,6 @@
                   <input type="text" class="input-field" id="p-nome-fantasia" />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">CNES</label>
-                  <input type="text" class="input-field" id="p-cnes" placeholder="Código CNES" />
-                </div>
-                <div class="form-group">
                   <label class="form-label">Tipo de Estabelecimento</label>
                   <input type="text" class="input-field" id="p-tipo" placeholder="Ex: Hospital Geral" />
                 </div>
@@ -260,7 +257,6 @@
         document.getElementById('p-cnpj').value          = h.cnpj               || '';
         document.getElementById('p-razao-social').value  = h.razaoSocial        || '';
         document.getElementById('p-nome-fantasia').value = h.nomeFantasia       || '';
-        document.getElementById('p-cnes').value          = h.codigoCNES         || '';
         document.getElementById('p-tipo').value          = h.tipoEstabelecimento || '';
         document.getElementById('p-telefone').value      = h.telefoneContato    || '';
         document.getElementById('p-email').value         = h.usuario?.email     || h.email || '';
@@ -319,7 +315,6 @@
         const dados = await api.post('/hospitais/cnes/vincular', { cnpj: _cnpj });
         renderCnesPanel(dados, new Date().toISOString());
         // Atualiza campos do formulário com dados novos
-        if (dados.codigoCNES)         document.getElementById('p-cnes').value  = dados.codigoCNES;
         if (dados.tipoEstabelecimento) document.getElementById('p-tipo').value = dados.tipoEstabelecimento;
         if (dados.telefoneContato)     document.getElementById('p-telefone').value = dados.telefoneContato;
         if (dados.enderecoLogradouro)  document.getElementById('e-logradouro').value = dados.enderecoLogradouro;
@@ -429,7 +424,6 @@
         await api.put('/hospitais/me', {
           razaoSocial:         document.getElementById('p-razao-social').value.trim(),
           nomeFantasia:        document.getElementById('p-nome-fantasia').value.trim(),
-          codigoCNES:          document.getElementById('p-cnes').value.trim() || undefined,
           tipoEstabelecimento: document.getElementById('p-tipo').value.trim(),
           telefoneContato:     document.getElementById('p-telefone').value.trim(),
         });
