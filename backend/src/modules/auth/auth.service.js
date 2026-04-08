@@ -102,6 +102,23 @@ async function login(email, senha, plataforma, ipAddress, userAgent) {
     throw Object.assign(new Error('Conta suspensa. Entre em contato com o suporte.'), { status: 403 });
   }
 
+  // Recovery: ensure role-specific profile exists (for accounts created before auto-creation)
+  if (user.role === 'MEDICO') {
+    const medico = await prisma.medicos.findFirst({ where: { usuarioId: user.id } });
+    if (!medico) {
+      await prisma.medicos.create({ data: { usuarioId: user.id } });
+      logger.warn(`[recovery] Perfil médico criado para usuário ${user.id}`);
+    }
+  } else if (user.role === 'HOSPITAL') {
+    const hospital = await prisma.hospitais.findFirst({ where: { usuarioId: user.id } });
+    if (!hospital) {
+      await prisma.hospitais.create({
+        data: { usuarioId: user.id, cnpj: '00000000000000', razaoSocial: user.nomeCompleto },
+      });
+      logger.warn(`[recovery] Perfil hospital criado para usuário ${user.id}`);
+    }
+  }
+
   const token = await _criarSessao(user, plataforma, ipAddress, userAgent);
 
   return {
@@ -151,6 +168,9 @@ async function register(data) {
   const senhaHash = await bcrypt.hash(senha, 10);
   const tokenVerificacao = generateToken();
 
+  // Auto-verify when RESEND is not configured (dev/staging without email setup)
+  const autoVerificar = !process.env.RESEND_API_KEY;
+
   const user = await prisma.usuarios.create({
     data: {
       email: email.toLowerCase().trim(),
@@ -158,8 +178,8 @@ async function register(data) {
       nomeCompleto,
       role,
       telefone: telefone || null,
-      emailVerificado: false,
-      tokenVerificacao,
+      emailVerificado: autoVerificar,
+      tokenVerificacao: autoVerificar ? null : tokenVerificacao,
     },
   });
 
@@ -177,10 +197,16 @@ async function register(data) {
     });
   }
 
-  // Send verification email
-  await _enviarEmailVerificacao(user, tokenVerificacao);
+  // Send verification email only when Resend is configured
+  if (!autoVerificar) {
+    await _enviarEmailVerificacao(user, tokenVerificacao);
+  }
 
-  return { message: 'Cadastro realizado. Verifique seu e-mail para ativar a conta.' };
+  const message = autoVerificar
+    ? 'Cadastro realizado! Faça login para continuar.'
+    : 'Cadastro realizado. Verifique seu e-mail para ativar a conta.';
+
+  return { message };
 }
 
 /**

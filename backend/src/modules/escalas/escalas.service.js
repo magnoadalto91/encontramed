@@ -171,4 +171,23 @@ function _parseDateTime(dateStr, timeStr) {
   return d;
 }
 
-module.exports = { listar, criar, getById, pausar, reativar, generatePlantoes };
+async function listarMedico(userId) {
+  const medico = await prisma.medicos.findFirst({ where: { usuarioId: userId } });
+  if (!medico) return [];
+
+  return prisma.plantoes.findMany({
+    where: {
+      medicoId: medico.id,
+      escalaId: { not: null },
+      status: { in: ['CONFIRMADO', 'REALIZADO', 'ABERTO'] },
+    },
+    include: {
+      escala: { include: { especialidade: true } },
+      hospital: { select: { nomeFantasia: true, razaoSocial: true, enderecoCidade: true, enderecoEstado: true } },
+      especialidade: true,
+    },
+    orderBy: { dataInicio: 'asc' },
+  });
+}
+
+module.exports = { listar, criar, getById, pausar, reativar, generatePlantoes, listarMedico };

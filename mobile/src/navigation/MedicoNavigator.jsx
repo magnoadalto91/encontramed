@@ -23,9 +23,7 @@ export default function MedicoNavigator() {
         tabBarStyle: {
           backgroundColor: '#0D1B2E',
           borderTopColor: 'rgba(38,208,206,0.15)',
-          paddingBottom: 8,
           paddingTop: 8,
-          height: 64,
         },
         tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: COLORS.textMuted,

@@ -8,6 +8,8 @@ const wrap = fn => (req, res, next) => fn(req, res, next).catch(next);
 
 router.get('/', auth, hospitalMw, wrap(async (req, res) => res.json(await svc.listar(req.userId))));
 router.post('/', auth, hospitalMw, wrap(async (req, res) => res.status(201).json(await svc.criar(req.body, req.userId))));
+// Literal ANTES de /:id para não ser capturado como parâmetro
+router.get('/minhas', auth, wrap(async (req, res) => res.json(await svc.listarMedico(req.userId))));
 router.get('/:id', auth, wrap(async (req, res) => res.json(await svc.getById(req.params.id, req.userId))));
 router.post('/:id/pausar', auth, hospitalMw, wrap(async (req, res) => res.json(await svc.pausar(req.params.id, req.userId))));
 router.post('/:id/reativar', auth, hospitalMw, wrap(async (req, res) => res.json(await svc.reativar(req.params.id, req.userId))));

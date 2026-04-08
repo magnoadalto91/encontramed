@@ -17,7 +17,7 @@ export default function HospitalNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: { backgroundColor: '#0D1B2E', borderTopColor: 'rgba(38,208,206,0.15)', paddingBottom: 8, paddingTop: 8, height: 64 },
+        tabBarStyle: { backgroundColor: '#0D1B2E', borderTopColor: 'rgba(38,208,206,0.15)', paddingTop: 8 },
         tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: COLORS.textMuted,
         tabBarIcon: ({ focused }) => <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{ICONS[route.name]}</Text>,
