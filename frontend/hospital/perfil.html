@@ -97,12 +97,8 @@
                 </div>
               </div>
 
-              <!-- Informações adicionais -->
-              <div id="cnes-info-extra" style="display:none;margin-bottom:var(--space-4);display:flex;flex-wrap:wrap;gap:var(--space-3);">
-                <span id="cnes-gestao" class="badge badge-info" style="display:none;"></span>
-                <span id="cnes-turno" class="badge badge-info" style="display:none;"></span>
-                <span id="cnes-natureza" class="badge badge-info" style="display:none;"></span>
-              </div>
+              <!-- Informações adicionais (geradas dinamicamente) -->
+              <div id="cnes-info-extra" style="display:none;margin-bottom:var(--space-4);flex-wrap:wrap;gap:var(--space-2);"></div>
 
               <!-- Leitos detalhados -->
               <div id="cnes-leitos-section" style="display:none;margin-bottom:var(--space-5);">
@@ -402,16 +398,28 @@
         ).join('');
       }
 
-      // Badges extras
-      const badgeGestao   = document.getElementById('cnes-gestao');
-      const badgeTurno    = document.getElementById('cnes-turno');
-      const badgeNatureza = document.getElementById('cnes-natureza');
-      let temExtra = false;
-      if (dados.tipoGestao) { badgeGestao.textContent = '🏛 ' + dados.tipoGestao; badgeGestao.style.display = ''; temExtra = true; }
-      if (dados.turnoAtendimento) { badgeTurno.textContent = '🕐 ' + dados.turnoAtendimento; badgeTurno.style.display = ''; temExtra = true; }
-      if (dados.naturezaJuridica) { badgeNatureza.textContent = dados.naturezaJuridica; badgeNatureza.style.display = ''; temExtra = true; }
-      if (temExtra) document.getElementById('cnes-info-extra').style.display = 'flex';
-    }
+      // Badges informativos
+      const extras = [];
+      if (dados.tipoGestao)           extras.push('🏛 Gestão: ' + dados.tipoGestao);
+      if (dados.esferaAdministrativa) extras.push('📋 ' + dados.esferaAdministrativa);
+      if (dados.nivelHierarquia)      extras.push('🔢 ' + dados.nivelHierarquia);
+      if (dados.turnoAtendimento)     extras.push('🕐 ' + dados.turnoAtendimento);
+      if (dados.naturezaJuridica)     extras.push(dados.naturezaJuridica);
+
+      // Capacidades
+      if (dados.possuiCentroCirurgico  === true)  extras.push('🔪 Centro Cirúrgico');
+      if (dados.possuiCentroObstetrico === true)  extras.push('🤱 Centro Obstétrico');
+      if (dados.possuiAtendimentoHosp  === true)  extras.push('🏥 Internação');
+      if (dados.possuiAtendimentoAmb   === true)  extras.push('🩺 Ambulatório');
+      if (dados.possuiServApoio        === true)  extras.push('🔬 Serv. Apoio');
+      if (dados.emailContato)                     extras.push('✉️ ' + dados.emailContato);
+
+      if (extras.length) {
+        document.getElementById('cnes-info-extra').style.display = 'flex';
+        document.getElementById('cnes-info-extra').innerHTML = extras.map(t =>
+          `<span class="badge badge-info" style="white-space:nowrap;">${t}</span>`
+        ).join('');
+      }
 
     document.getElementById('btn-salvar-dados').addEventListener('click', async () => {
       const btn = document.getElementById('btn-salvar-dados');

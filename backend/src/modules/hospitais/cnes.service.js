@@ -93,34 +93,78 @@ function _first(...vals) {
   return '';
 }
 
+// Decode do campo codigo_tipo_unidade (código numérico → descrição legível)
+// Fonte: tabela CNES/SIGTAP
+const TIPO_UNIDADE = {
+  '01':'Posto de Saúde','02':'Centro de Saúde / UBS','04':'Policlínica',
+  '05':'Hospital Geral','06':'Hospital Especializado','07':'Unidade Mista',
+  '15':'Unidade de Apoio Diagnose e Terapia','20':'Pronto-socorro Geral',
+  '21':'Pronto-socorro Especializado','22':'Consultório Isolado',
+  '32':'Unidade Móvel Fluvial','36':'Clínica / Centro de Especialidade',
+  '39':'Unidade de Apoio','40':'Unidade Mista','42':'Centro de Parto Normal',
+  '43':'Hospital Dia - Isolado','45':'UPA 24h','50':'Hospital Geral',
+  '61':'Centro de Hemoterapia','62':'Hospital Dia','64':'Central de Regulação Médica',
+  '67':'Laboratório Central de Saúde Pública','70':'Centro de Atenção Psicossocial',
+  '71':'Centro de Atenção Hemoterapia e ou Hematologia',
+  '72':'Centro de Imunização','73':'Pronto-atendimento',
+  '74':'Centro de Apoio a Saúde da Família','75':'Telessaúde','76':'Central Municipal',
+  '78':'Unidade de Atenção em Saúde Indígena','80':'Laboratório de Saúde Pública',
+  '81':'Laboratório Municipal','82':'Farmácia','85':'CAPS','86':'Residência Terapêutica',
+};
+
+function _decodeTipoUnidade(codigo) {
+  if (!codigo) return '';
+  const k = String(codigo).padStart(2, '0');
+  return TIPO_UNIDADE[k] || `Tipo ${k}`;
+}
+
 function normalizarEstabelecimento(brasilApi, cnes) {
   const b = brasilApi || {};
   const c = cnes || {};
 
-  const codigoCNES = _first(c.co_cnes, c.codigo_cnes, c.cnes, c.nu_cnes);
+  // Código CNES — nova API usa "codigo_cnes", API antiga usa "co_cnes"
+  const codigoCNES = _first(c.codigo_cnes, c.co_cnes, c.cnes, c.nu_cnes, c.codigo_estabelecimento_saude);
+
+  // Tipo — nova API devolve código numérico em "codigo_tipo_unidade"
+  const tipoEstabelecimento = _first(
+    c.ds_tipo_unidade, c.descricao_tipo_unidade,
+    c.tipo_unidade,    c.tp_unidade,
+    _decodeTipoUnidade(c.codigo_tipo_unidade)
+  );
+
+  // Endereço — nova API usa nomes mais descritivos
+  const lat = c.latitude_estabelecimento_decimo_grau  ?? c.nu_latitude  ?? c.latitude  ?? null;
+  const lng = c.longitude_estabelecimento_decimo_grau ?? c.nu_longitude ?? c.longitude ?? null;
 
   return {
-    razaoSocial:          _first(b.razao_social,       c.no_razao_social,   c.razao_social),
-    nomeFantasia:         _first(b.nome_fantasia,       c.no_fantasia,       c.nome_fantasia),
-    cnpj:                 _first(b.cnpj,                c.nu_cnpj,           c.cnpj),
+    razaoSocial:     _first(b.razao_social,       c.nome_razao_social,   c.no_razao_social,   c.razao_social),
+    nomeFantasia:    _first(b.nome_fantasia,       c.nome_fantasia,       c.no_fantasia),
+    cnpj:            _first(b.cnpj,               c.numero_cnpj,         c.numero_cnpj_entidade, c.nu_cnpj, c.cnpj),
     codigoCNES,
-    tipoEstabelecimento:  _first(c.ds_tipo_unidade,     c.tp_unidade,        c.tipo_unidade,  c.descricao_tipo),
-    enderecoLogradouro:   _first(c.no_logradouro,       c.logradouro,        b.logradouro),
-    enderecoNumero:       _first(c.nu_endereco,         c.numero,            b.numero),
-    enderecoBairro:       _first(c.no_bairro,           c.bairro,            b.bairro),
-    enderecoCidade:       _first(c.no_municipio,        c.municipio,         b.municipio),
-    enderecoEstado:       _first(c.sg_uf,               c.uf,                b.uf),
-    enderecoCep:         (_first(c.co_cep,              c.cep,               b.cep)).replace(/\D/g, ''),
-    telefoneContato:      _first(c.nu_telefone,         c.telefone,          b.ddd_telefone_1, b.ddd_fax),
-    latitude:             c.nu_latitude  != null ? parseFloat(c.nu_latitude)  : (c.latitude  != null ? parseFloat(c.latitude)  : null),
-    longitude:            c.nu_longitude != null ? parseFloat(c.nu_longitude) : (c.longitude != null ? parseFloat(c.longitude) : null),
-    naturezaJuridica:     b.natureza_juridica?.descricao || _first(c.ds_natureza_juridica, c.natureza_juridica),
-    atividadePrincipal:   b.atividade_principal?.[0]?.text || '',
-    tipoGestao:           _first(c.ds_tipo_gestao,      c.tipo_gestao,       c.gestao),
-    turnoAtendimento:     _first(c.ds_turno_atendimento, c.turno_atendimento, c.turno),
-    atendeUrgencia:       c.co_atendimento_urgencia != null ? !!Number(c.co_atendimento_urgencia) : null,
-    atendeInternacao:     c.co_atendimento_internacao != null ? !!Number(c.co_atendimento_internacao) : null,
-    atendeAmbulatório:    c.co_atendimento_ambulatorial != null ? !!Number(c.co_atendimento_ambulatorial) : null,
+    tipoEstabelecimento,
+    enderecoLogradouro: _first(c.endereco_estabelecimento, c.no_logradouro, c.logradouro,    b.logradouro),
+    enderecoNumero:     _first(c.numero_estabelecimento,   c.nu_endereco,   c.numero,        b.numero),
+    enderecoBairro:     _first(c.bairro_estabelecimento,   c.no_bairro,     c.bairro,        b.bairro),
+    // Município: nova API só tem código — preferir BrasilAPI que tem o nome
+    enderecoCidade:     _first(b.municipio,               c.no_municipio,  c.municipio),
+    // Estado: nova API tem codigo_uf (número) — preferir BrasilAPI que tem sigla
+    enderecoEstado:     _first(b.uf,                      c.sg_uf,         c.uf),
+    enderecoCep:       (_first(c.codigo_cep_estabelecimento, c.co_cep, c.cep, b.cep)).replace(/\D/g, ''),
+    telefoneContato:    _first(c.numero_telefone_estabelecimento, c.nu_telefone, c.telefone, b.ddd_telefone_1, b.ddd_fax),
+    emailContato:       _first(c.endereco_email_estabelecimento, c.email),
+    latitude:           lat != null ? parseFloat(lat)  : null,
+    longitude:          lng != null ? parseFloat(lng)  : null,
+    naturezaJuridica:   _first(b.natureza_juridica?.descricao,  c.descricao_natureza_juridica_estabelecimento, c.ds_natureza_juridica),
+    atividadePrincipal: b.atividade_principal?.[0]?.text || '',
+    tipoGestao:         _first(c.tipo_gestao,              c.ds_tipo_gestao,  c.gestao),
+    esferaAdministrativa: _first(c.descricao_esfera_administrativa, c.esfera_administrativa),
+    nivelHierarquia:    _first(c.descricao_nivel_hierarquia, c.nivel_hierarquia),
+    turnoAtendimento:   _first(c.descricao_turno_atendimento, c.ds_turno_atendimento, c.turno_atendimento, c.turno),
+    possuiCentroCirurgico:   c.estabelecimento_possui_centro_cirurgico    != null ? !!Number(c.estabelecimento_possui_centro_cirurgico)    : null,
+    possuiCentroObstetrico:  c.estabelecimento_possui_centro_obstetrico   != null ? !!Number(c.estabelecimento_possui_centro_obstetrico)   : null,
+    possuiAtendimentoHosp:   c.estabelecimento_possui_atendimento_hospitalar != null ? !!Number(c.estabelecimento_possui_atendimento_hospitalar) : null,
+    possuiAtendimentoAmb:    c.estabelecimento_possui_atendimento_ambulatorial != null ? !!Number(c.estabelecimento_possui_atendimento_ambulatorial) : null,
+    possuiServApoio:         c.estabelecimento_possui_servico_apoio        != null ? !!Number(c.estabelecimento_possui_servico_apoio)        : null,
   };
 }
 
@@ -131,12 +175,19 @@ function normalizarLeitos(lista) {
   const detalhes = [];
 
   for (const item of lista) {
-    const desc = item.ds_leito     || item.tp_leito      || item.no_leito    ||
-                 item.tipo_leito   || item.descricao      || item.tipo        || '';
-    const exist    = Number(item.qt_exist       || item.qt_existente  || item.qtd_exist    || item.existente    || item.quantidade   || 0);
-    const sus      = Number(item.qt_sus         || item.qtd_sus       || item.sus          || 0);
-    const naoSus   = Number(item.qt_nsus        || item.qt_nao_sus    || item.qtd_nao_sus  || item.nao_sus      || 0);
-    const contrat  = Number(item.qt_contratado  || item.qt_contract   || item.contratado   || 0);
+    // Nova API CNES usa nomes longos descritivos
+    const desc = item.descricao_leito            || item.ds_leito          || item.tp_leito    ||
+                 item.no_leito                   || item.tipo_leito        || item.descricao   || item.tipo || '';
+    const exist = Number(
+      item.quantidade_existente  ?? item.qt_exist        ?? item.qt_existente  ??
+      item.qtd_exist             ?? item.existente       ?? item.quantidade    ?? 0);
+    const sus   = Number(
+      item.quantidade_sus        ?? item.qt_sus          ?? item.qtd_sus       ?? item.sus      ?? 0);
+    const naoSus= Number(
+      item.quantidade_nao_sus    ?? item.qt_nsus         ?? item.qt_nao_sus    ??
+      item.qtd_nao_sus           ?? item.nao_sus         ?? 0);
+    const contrat = Number(
+      item.quantidade_contratado ?? item.qt_contratado   ?? item.qt_contract   ?? item.contratado ?? 0);
 
     if (!desc || exist === 0) continue;
     totalExistentes += exist;
@@ -162,9 +213,9 @@ function normalizarEquipamentos(lista) {
 
   return lista
     .map(item => ({
-      nome:       item.ds_equipamento  || item.no_equipamento || item.descricao || item.nome || '',
-      quantidade: Number(item.qt_exist  || item.qtd_existente  || item.existente  || item.quantidade || 0),
-      emUso:      Number(item.qt_em_uso || item.qtd_em_uso     || item.em_uso     || 0),
+      nome:       item.descricao_equipamento || item.ds_equipamento  || item.no_equipamento || item.descricao || item.nome || '',
+      quantidade: Number(item.quantidade_existente ?? item.qt_exist  ?? item.qtd_existente  ?? item.existente  ?? item.quantidade ?? 0),
+      emUso:      Number(item.quantidade_em_uso    ?? item.qt_em_uso ?? item.qtd_em_uso     ?? item.em_uso     ?? 0),
     }))
     .filter(e => e.nome && e.quantidade > 0)
     .sort((a, b) => b.quantidade - a.quantidade);
@@ -174,8 +225,8 @@ function normalizarServicos(lista) {
   if (!Array.isArray(lista) || !lista.length) return [];
   return lista
     .map(item => ({
-      servico:      item.ds_servico     || item.no_servico    || item.descricao || '',
-      classificacao: item.ds_classificacao || item.classificacao || '',
+      servico:       item.descricao_servico || item.ds_servico      || item.no_servico    || item.descricao  || item.servico || '',
+      classificacao: item.descricao_classificacao || item.ds_classificacao || item.classificacao || '',
     }))
     .filter(e => e.servico);
 }
@@ -216,9 +267,10 @@ async function buscarPorCNPJ(cnpj) {
     logger.warn(`[cnes] CNES/estabelecimentos falhou: ${err.response?.status || err.message}`);
   }
 
-  // Determinar código CNES — pode ser co_cnes, codigo_cnes, etc.
+  // Determinar código CNES — nova API usa "codigo_cnes", antiga usava "co_cnes"
   const coCnes = cnesBasico
-    ? (cnesBasico.co_cnes || cnesBasico.codigo_cnes || cnesBasico.cnes || cnesBasico.nu_cnes || null)
+    ? (cnesBasico.codigo_cnes || cnesBasico.co_cnes || cnesBasico.cnes ||
+       cnesBasico.nu_cnes     || cnesBasico.codigo_estabelecimento_saude || null)
     : null;
 
   // 3. Detalhes + leitos + equipamentos + serviços (só se tiver código CNES)
