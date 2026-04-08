@@ -80,13 +80,29 @@ async function getDashboardStats(userId) {
   const amanha = new Date(hoje);
   amanha.setDate(amanha.getDate() + 1);
 
-  const [ativos, candidatosPendentes, realizadosHoje] = await Promise.all([
+  const inicioPrimeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+  const [ativos, pendentes, realizadosMes, medicosDistintos] = await Promise.all([
     prisma.plantoes.count({ where: { hospitalId: hospital.id, status: { in: ['ABERTO', 'CANDIDATADO', 'CONFIRMADO'] } } }),
     prisma.candidaturas.count({ where: { status: 'PENDENTE', plantao: { hospitalId: hospital.id } } }),
-    prisma.plantoes.count({ where: { hospitalId: hospital.id, status: 'REALIZADO', realizadoEm: { gte: hoje, lt: amanha } } }),
+    prisma.plantoes.count({ where: { hospitalId: hospital.id, status: 'REALIZADO', realizadoEm: { gte: inicioPrimeiroDiaMes } } }),
+    prisma.plantoes.findMany({
+      where: { hospitalId: hospital.id, status: 'REALIZADO', medicoId: { not: null } },
+      select: { medicoId: true },
+      distinct: ['medicoId'],
+    }),
   ]);
 
-  return { plantoesAtivos: ativos, candidatosPendentes, realizadosHoje };
+  return {
+    plantoes_abertos: ativos,
+    candidaturas_pendentes: pendentes,
+    plantoes_realizados_mes: realizadosMes,
+    medicos_contratados: medicosDistintos.length,
+    // aliases
+    plantoesAtivos: ativos,
+    candidatosPendentes: pendentes,
+    realizadosMes,
+  };
 }
 
 module.exports = { getPerfil, updatePerfil, buscarCNPJ, vincularCNES, getDashboardStats };

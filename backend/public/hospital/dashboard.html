@@ -252,10 +252,10 @@
         }
         tbody.innerHTML = items.map(c => `
           <tr>
-            <td>${c.medico?.nomeCompleto || c.medicoNome || '—'}</td>
+            <td>${c.medico?.usuario?.nomeCompleto || c.medico?.nomeCompleto || c.medicoNome || '—'}</td>
             <td class="td-secondary">${c.medico?.crm || c.crm || '—'}</td>
             <td>${fmtDate(c.plantao?.dataInicio || c.plantaoData)}</td>
-            <td class="td-secondary">${fmtDate(c.createdAt)}</td>
+            <td class="td-secondary">${fmtDate(c.criadoEm || c.createdAt)}</td>
             <td>
               <div class="td-actions">
                 <button class="btn btn-success btn-xs" onclick="aceitarCandidatura(${c.id})">✅ Aceitar</button>

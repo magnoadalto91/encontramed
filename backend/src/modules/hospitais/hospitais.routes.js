@@ -14,8 +14,9 @@ router.put('/me',      auth, hospitalMw, wrap(async (req, res) => res.json(await
 router.get('/perfil',  auth, hospitalMw, wrap(async (req, res) => res.json(await svc.getPerfil(req.userId))));
 router.put('/perfil',  auth, hospitalMw, wrap(async (req, res) => res.json(await svc.updatePerfil(req.userId, req.body))));
 
-// Dashboard
-router.get('/dashboard', auth, hospitalMw, wrap(async (req, res) => res.json(await svc.getDashboardStats(req.userId))));
+// Dashboard (alias /me/stats kept for web portal compatibility)
+router.get('/dashboard',  auth, hospitalMw, wrap(async (req, res) => res.json(await svc.getDashboardStats(req.userId))));
+router.get('/me/stats',   auth, hospitalMw, wrap(async (req, res) => res.json(await svc.getDashboardStats(req.userId))));
 
 // CNES — rota pública (dados públicos do governo, usada também no cadastro antes do login)
 router.get('/cnes/consultar', wrap(async (req, res) => {

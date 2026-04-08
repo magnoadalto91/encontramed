@@ -4,7 +4,13 @@ const router = require('express').Router();
 const svc = require('./candidaturas.service');
 const auth = require('../../middlewares/auth.middleware');
 const { candidaturaLimiter } = require('../../config/rateLimiter');
+const hospitalMw = require('../../middlewares/hospital.middleware');
 const wrap = fn => (req, res, next) => fn(req, res, next).catch(next);
+
+// ⚠️ Literal routes BEFORE dynamic /:id
+router.get('/hospital', auth, hospitalMw, wrap(async (req, res) => {
+  res.json(await svc.listarHospital(req.userId, req.query));
+}));
 
 router.post('/', auth, candidaturaLimiter, wrap(async (req, res) => {
   const { plantaoId, mensagem } = req.body;

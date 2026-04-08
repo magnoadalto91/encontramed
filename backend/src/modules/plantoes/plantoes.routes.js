@@ -34,6 +34,8 @@ router.post('/', auth, hospitalMw, wrap(async (req, res) => {
 
 // Dynamic /:id routes
 router.get('/:id', auth, wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id || id <= 0) return res.status(404).json({ error: 'Plantão não encontrado' });
   res.json(await svc.getById(req.params.id, req.userId, req.role));
 }));
 router.delete('/:id', auth, wrap(async (req, res) => {

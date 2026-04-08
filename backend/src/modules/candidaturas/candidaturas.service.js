@@ -112,4 +112,28 @@ async function rejeitar(candidaturaId, userId, motivoRejeicao) {
   return { success: true };
 }
 
-module.exports = { candidatar, cancelarCandidatura, aceitar, rejeitar };
+async function listarHospital(userId, query = {}) {
+  const hospital = await prisma.hospitais.findFirst({ where: { usuarioId: userId } });
+  if (!hospital) throw Object.assign(new Error('Hospital não encontrado'), { status: 404 });
+
+  const where = { plantao: { hospitalId: hospital.id } };
+  if (query.status) where.status = query.status;
+  const limit = query.limit ? Math.min(Number(query.limit), 100) : 20;
+
+  return prisma.candidaturas.findMany({
+    where,
+    take: limit,
+    include: {
+      medico: {
+        include: {
+          usuario: { select: { nomeCompleto: true } },
+          especialidades: { include: { especialidade: true } },
+        },
+      },
+      plantao: { include: { especialidade: true } },
+    },
+    orderBy: { criadoEm: 'desc' },
+  });
+}
+
+module.exports = { candidatar, cancelarCandidatura, aceitar, rejeitar, listarHospital };
