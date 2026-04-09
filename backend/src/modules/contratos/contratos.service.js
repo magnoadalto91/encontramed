@@ -133,11 +133,22 @@ async function gerarPDF(plantaoId, userId) {
     doc.text('3. Cancelamentos devem ser comunicados com no mínimo 24 horas de antecedência, salvo casos de força maior.');
     doc.moveDown(1.5);
 
-    // Validade
-    doc.fontSize(12).font('Helvetica-Bold').text('DA VALIDADE DO ACEITE ELETRÔNICO');
+    // Validade — Lei 14.063/2020 prominent section
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text('DA VALIDADE JURÍDICA DO ACEITE ELETRÔNICO');
     doc.moveDown(0.3);
-    doc.fontSize(10).font('Helvetica');
-    doc.text('O aceite eletrônico registrado na Plataforma EncontraMed tem validade jurídica conforme a Lei 14.063/2020 (assinatura eletrônica simples), sendo registrado com data, hora e endereço IP do dispositivo do aceitante.');
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000').text('Fundamento Legal: Lei Federal nº 14.063, de 23 de setembro de 2020');
+    doc.fontSize(10).font('Helvetica').fillColor('#333');
+    doc.moveDown(0.3);
+    doc.text('Este instrumento constitui Assinatura Eletrônica Simples (Tipo 1), modalidade expressamente reconhecida pelo art. 4º, inciso I, da Lei nº 14.063/2020, que dispõe sobre o uso de assinaturas eletrônicas em interações com entes públicos e privados e produz os mesmos efeitos jurídicos de uma assinatura manuscrita, nos termos do art. 5º da referida Lei.', { align: 'justify' });
+    doc.moveDown(0.5);
+    doc.text('Ao clicar em "Aceitar Contrato" na Plataforma EncontraMed, a parte registra sua manifestação de vontade livre, consciente e inequívoca, conforme exige o art. 3º da Lei nº 14.063/2020. O sistema registra automaticamente:', { align: 'justify' });
+    doc.moveDown(0.3);
+    doc.text('  • Data e hora exata do aceite (fuso horário UTC−3, horário de Brasília)');
+    doc.text('  • Endereço IP do dispositivo utilizado no aceite');
+    doc.text('  • Identificador único do usuário autenticado na plataforma');
+    doc.text('  • User-Agent (identificação do navegador/aplicativo)');
+    doc.moveDown(0.5);
+    doc.text('O conjunto dessas informações constitui prova eletrônica de autoria e integridade, com validade probatória reconhecida pelo art. 6º da Lei nº 14.063/2020 e pelo art. 10, § 2º, da Medida Provisória nº 2.200-2/2001 (ICP-Brasil).', { align: 'justify' });
     doc.moveDown(2);
 
     // Signature area
@@ -147,10 +158,17 @@ async function gerarPDF(plantaoId, userId) {
     doc.text('Contratante                                          Contratado', { align: 'center' });
     doc.moveDown(1);
 
+    doc.moveDown(0.5);
     if (contrato.status === 'ASSINADO' && contrato.assinadoEm) {
-      doc.fontSize(9).fillColor('#555').text(`Aceite eletrônico registrado em: ${fmtDateTime(contrato.assinadoEm)} — IP: ${contrato.aceiteIp || 'registrado'}`, { align: 'center' });
+      doc.rect(60, doc.y, doc.page.width - 120, 48).fill('#f0f7f0').stroke('#2ecc71');
+      doc.moveUp(0);
+      doc.fillColor('#1a7a3a').fontSize(9).font('Helvetica-Bold').text('✔ CONTRATO ACEITO ELETRONICAMENTE — LEI Nº 14.063/2020', { align: 'center' });
+      doc.fillColor('#333').font('Helvetica').text(`Data/Hora: ${fmtDateTime(contrato.assinadoEm)} (horário de Brasília)`, { align: 'center' });
+      doc.text(`IP do Dispositivo: ${contrato.aceiteIp || 'registrado'} | Protocolo: ENM-${contrato.id}-${new Date(contrato.assinadoEm).getTime()}`, { align: 'center' });
     } else {
-      doc.fontSize(9).fillColor('#e00').text('AGUARDANDO ACEITE ELETRÔNICO', { align: 'center' });
+      doc.rect(60, doc.y, doc.page.width - 120, 30).fill('#fff8f0').stroke('#e67e22');
+      doc.fillColor('#c0392b').fontSize(9).font('Helvetica-Bold').text('⚠ AGUARDANDO ACEITE ELETRÔNICO — Contrato não possui validade até assinatura de ambas as partes', { align: 'center' });
+      doc.fillColor('#555').font('Helvetica');
     }
 
     doc.end();

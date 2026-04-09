@@ -28,8 +28,14 @@ router.get('/meus', auth, wrap(async (req, res) => {
 
 // ─── Routes by plantaoId (PDF generation + 1-click accept) ──────────────────
 
-// GET /api/contratos/:plantaoId/pdf — download PDF
-router.get('/:plantaoId/pdf', auth, wrap(async (req, res) => {
+// GET /api/contratos/:plantaoId/pdf — download PDF (accepts ?token= for browser open)
+router.get('/:plantaoId/pdf', (req, res, next) => {
+  // Allow token from query string (for window.open in browser)
+  if (req.query.token && !req.headers.authorization) {
+    req.headers.authorization = `Bearer ${req.query.token}`;
+  }
+  auth(req, res, next);
+}, wrap(async (req, res) => {
   const pdf = await svc.gerarPDF(req.params.plantaoId, req.userId);
   res.set({
     'Content-Type': 'application/pdf',

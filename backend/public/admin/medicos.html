@@ -54,7 +54,7 @@
           <div class="table-container">
             <table id="medicos-table">
               <thead><tr>
-                <th>Médico</th><th>CRM / UF</th><th>Status CRM</th><th>Especialidades</th><th>Cadastrado</th><th>Ações</th>
+                <th>Médico</th><th>CRM / UF</th><th>Status CRM</th><th>Nota</th><th>Cadastrado</th><th>Ações</th>
               </tr></thead>
               <tbody id="medicos-tbody">
                 <tr><td colspan="6" class="text-center"><div class="skeleton" style="height:40px;margin:8px"></div></td></tr>
@@ -107,7 +107,7 @@ async function loadMedicos(page = 1) {
         </td>
         <td>${m.crm ? `${m.crm}/${m.crmUf}` : '<span class="text-muted">—</span>'}</td>
         <td><span class="badge ${CRM_BADGE[m.crmStatus] || 'badge-gray'}">${CRM_LABEL[m.crmStatus] || m.crmStatus || '—'}</span></td>
-        <td><span class="text-muted text-sm">Ver perfil</span></td>
+        <td>${m.notaMedia ? '⭐ ' + Number(m.notaMedia).toFixed(1) + ' <span class="text-muted text-sm">(' + (m.totalAvaliacoes||0) + ')</span>' : '<span class="text-muted">—</span>'}</td>
         <td class="text-sm text-muted">${new Date(u.criadoEm).toLocaleDateString('pt-BR')}</td>
         <td>
           <div class="action-btns">

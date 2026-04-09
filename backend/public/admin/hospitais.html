@@ -44,7 +44,7 @@
       <div class="card">
         <div class="card-body p-0">
           <div class="table-container">
-            <table><thead><tr><th>Hospital</th><th>CNPJ</th><th>CNES</th><th>Cidade/UF</th><th>Verificado</th><th>Cadastrado</th><th>Ações</th></tr></thead>
+            <table><thead><tr><th>Hospital</th><th>CNPJ</th><th>CNES</th><th>Nota</th><th>Verificado</th><th>Cadastrado</th><th>Ações</th></tr></thead>
             <tbody id="hospitais-tbody"><tr><td colspan="7" class="text-center text-muted">Carregando...</td></tr></tbody>
             </table>
           </div>
@@ -70,7 +70,7 @@ async function loadHospitais(page = 1) {
     const data = await api.get(`/admin/usuarios?${params}`);
     const usuarios = data.usuarios || [];
     if (!usuarios.length) {
-      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🏥</div><div>Nenhum hospital encontrado</div></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🏥</div><div>Nenhum hospital encontrado</div></div></td></tr>';
       return;
     }
     tbody.innerHTML = usuarios.map(u => {
@@ -82,6 +82,7 @@ async function loadHospitais(page = 1) {
         <td class="text-sm text-muted">${h.cnpj || '—'}</td>
         <td class="text-sm text-muted">${h.codigoCNES || '—'}</td>
         <td class="text-sm">${h.enderecoCidade ? `${h.enderecoCidade}/${h.enderecoEstado}` : '—'}</td>
+        <td>${h.notaMedia ? '⭐ ' + Number(h.notaMedia).toFixed(1) + ' <span class="text-muted text-sm">(' + (h.totalAvaliacoes||0) + ')</span>' : '<span class="text-muted">—</span>'}</td>
         <td>${h.verificado ? '<span class="badge badge-success">✓ Verificado</span>' : '<span class="badge badge-warning">Pendente</span>'}</td>
         <td class="text-sm text-muted">${new Date(u.criadoEm).toLocaleDateString('pt-BR')}</td>
         <td>
